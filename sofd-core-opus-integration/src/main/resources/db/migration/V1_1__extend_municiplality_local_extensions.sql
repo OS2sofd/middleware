@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN local_extensions VARCHAR(1024) NULL DEFAULT 'SuppId,InvoiceRecipient,InvoiceLevel1,InvoiceLevel1Text,InvoiceLevel2,Level2Text';
