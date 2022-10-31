@@ -1,0 +1,8 @@
+api.user.name=apiuser
+api.user.password=apiuser
+
+sofd.core.url=https://localhost:9020/api
+sofd.core.apikey=Test1234
+sofd.core.pagesize=1000
+
+sslcontext.trustselfsigned=true
