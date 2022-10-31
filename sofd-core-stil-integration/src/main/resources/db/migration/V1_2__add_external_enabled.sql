@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN external_enabled BOOL NOT NULL DEFAULT FALSE;

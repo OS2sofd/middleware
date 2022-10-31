@@ -1,0 +1,1 @@
+To generate soap stubs run "mvn generate-sources -Pwsdl2java"
