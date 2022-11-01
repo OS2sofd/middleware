@@ -7,6 +7,7 @@
 - **sofd-core-signaturcentral-integration** - reads from Signaturcentral and writes to OS2sofd
 - **sofd-core-cpr-integration** - reads from SF1520 on Serviceplatformen and writes to OS2sofd
 - **sofd-core-sd-integration** - reads from SD and imports data into OS2sofd - can also be used as an outgoing integration to deliver data on SD's MOX interface
+- **sofd-core-cics-integration** - reads from CICS and imports data into OS2sofd - can also be used as an outgoing integration to manage CICS accounts
 
 ### outgoing
 - **sofd-core-oes-integration** - sends data to ØS Indsigt from OS2sofd
