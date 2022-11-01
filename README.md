@@ -7,3 +7,7 @@
 
 ### outgoing
 - **sofd-core-oes-integration** - sends data to ØS Indsigt from OS2sofd
+
+
+### functionality
+- **sofd-core-sf1601-integration** - sends digital post through SF1601 on the Serviceplatform
