@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN include_unilogin_users BOOLEAN DEFAULT FALSE;
