@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema xmlns:sd20070401="http://rep.oio.dk/sd.dk/xml.schema/20070401/" xmlns:sd="urn:oio:sd:snitflader:2011.12.01" xmlns:sd20070301="http://rep.oio.dk/sd.dk/xml.schema/20070301/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="urn:oio:sd:snitflader:2011.12.01" version="1.0" xmlns="http://www.w3.org/2001/XMLSchema">
+  <import schemaLocation="SD_SalaryAgreementIdentifier_20070401.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <import schemaLocation="SD_SalaryClassIdentifier_20070401.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <import schemaLocation="SD_SalaryScaleIdentifier_20070401.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <import schemaLocation="SD_PrepaidIndicator_20070401.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <import schemaLocation="SD_SeniorityDate_20070401.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <import schemaLocation="SD_ActivationDate_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="SD_DeactivationDate_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <element name="SalaryAgreement" type="sd:SalaryAgreementType" />
+  <complexType name="SalaryAgreementType">
+    <sequence>
+      <element ref="sd20070301:ActivationDate" />
+      <element ref="sd20070301:DeactivationDate" />
+      <element ref="sd20070401:SalaryAgreementIdentifier" />
+      <element ref="sd20070401:SalaryClassIdentifier" />
+      <element ref="sd20070401:SalaryScaleIdentifier" />
+      <element ref="sd20070401:PrepaidIndicator" />
+      <element ref="sd20070401:SeniorityDate" />
+    </sequence>
+  </complexType>
+</schema>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema xmlns:sd="urn:oio:sd:snitflader:2011.12.01" xmlns:sd20080201="http://rep.oio.dk/sd.dk/xml.schema/20080201/" xmlns:sd20070301="http://rep.oio.dk/sd.dk/xml.schema/20070301/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="urn:oio:sd:snitflader:2011.12.01" xmlns="http://www.w3.org/2001/XMLSchema">
+  <include schemaLocation="SD_GetInstitutionRequest_20111201.xsd" />
+  <element name="GetInstitution" type="sd:GetInstitutionRequestType" />
+</schema>

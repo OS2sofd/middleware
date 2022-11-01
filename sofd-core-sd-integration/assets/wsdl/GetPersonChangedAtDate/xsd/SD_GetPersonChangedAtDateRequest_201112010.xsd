@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema xmlns:sd="urn:oio:sd:snitflader:2011.12.01" xmlns:sd20070401="http://rep.oio.dk/sd.dk/xml.schema/20070401/" xmlns:sd20070301="http://rep.oio.dk/sd.dk/xml.schema/20070301/" xmlns:sd20080201="http://rep.oio.dk/sd.dk/xml.schema/20080201/" xmlns:cpr20050318="http://rep.oio.dk/cpr.dk/xml/schemas/core/2005/03/18/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="urn:oio:sd:snitflader:2011.12.01" xmlns="http://www.w3.org/2001/XMLSchema">
+  <include schemaLocation="SD_InstitutionIdentifier_20111201.xsd" />
+  <include schemaLocation="SD_DepartmentIdentifier_20111201.xsd" />
+  <include schemaLocation="SD_EmploymentIdentifier_20111201.xsd" />
+  <import schemaLocation="SD_PostalAddressIndicator_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="SD_ContactInformationIndicator_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="SD_DepartmentLevelIdentifier_20080201.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20080201/" />
+  <import schemaLocation="SD_StatusActiveIndicator_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="SD_StatusPassiveIndicator_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="SD_ActivationDate_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="SD_ActivationTime_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="SD_DeactivationDate_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="SD_DeactivationTime_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="CPR_PersonCivilRegistrationIdentifier_20050318.xsd" namespace="http://rep.oio.dk/cpr.dk/xml/schemas/core/2005/03/18/" />
+  <complexType name="GetPersonChangedAtDateRequestType">
+    <sequence>
+      <element ref="sd:InstitutionIdentifier" />
+      <element minOccurs="0" ref="cpr20050318:PersonCivilRegistrationIdentifier" />
+      <element minOccurs="0" ref="sd:EmploymentIdentifier" />
+      <element minOccurs="0" ref="sd:DepartmentIdentifier" />
+      <element minOccurs="0" ref="sd20080201:DepartmentLevelIdentifier" />
+      <element ref="sd20070301:ActivationDate" />
+      <element minOccurs="0" ref="sd20070301:ActivationTime" />
+      <element ref="sd20070301:DeactivationDate" />
+      <element minOccurs="0" ref="sd20070301:DeactivationTime" />
+      <element ref="sd20070301:ContactInformationIndicator" />
+      <element ref="sd20070301:PostalAddressIndicator" />
+    </sequence>
+  </complexType>
+</schema>

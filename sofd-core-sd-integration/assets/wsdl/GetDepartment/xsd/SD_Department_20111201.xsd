@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema xmlns:dkcc20050315="http://rep.oio.dk/ebxml/xml/schemas/dkcc/2005/03/15/" xmlns:dkcc20030213="http://rep.oio.dk/ebxml/xml/schemas/dkcc/2003/02/13/" xmlns:sd20070301="http://rep.oio.dk/sd.dk/xml.schema/20070301/" xmlns:sd20080201="http://rep.oio.dk/sd.dk/xml.schema/20080201/" xmlns:cpr20050318="http://rep.oio.dk/cpr.dk/xml/schemas/core/2005/03/18/" xmlns:cvr20050322="http://rep.oio.dk/cvr.dk/xml/schemas/2005/03/22/" xmlns:xcom20050315="http://rep.oio.dk/xkom.dk/xml/schemas/2005/03/15/" xmlns:itst20050624="http://rep.oio.dk/itst.dk/xml/schemas/2005/06/24/" xmlns:sd="urn:oio:sd:snitflader:2011.12.01" xmlns:itst20060110="http://rep.oio.dk/itst.dk/xml/schemas/2005/01/10/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="urn:oio:sd:snitflader:2011.12.01" xmlns="http://www.w3.org/2001/XMLSchema">
+  <import schemaLocation="SD_PostalAddress_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="SD_ContactInformation_20080201.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20080201/" />
+  <import schemaLocation="SD_DepartmentLevelIdentifier_20080201.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20080201/" />
+  <import schemaLocation="SD_ActivationDate_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="SD_DeactivationDate_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="SD_DepartmentName_20080201.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20080201/" />
+  <import schemaLocation="CVR_ProductionUnitIdentifier_20050322.xsd" namespace="http://rep.oio.dk/cvr.dk/xml/schemas/2005/03/22/" />
+  <include schemaLocation="SD_DepartmentUUIDIdentifier_20111201.xsd" />
+  <include schemaLocation="SD_DepartmentIdentifier_20111201.xsd" />
+  <element name="Department" type="sd:DepartmentType" />
+  <complexType name="DepartmentType">
+    <sequence>
+      <element ref="sd20070301:ActivationDate" />
+      <element ref="sd20070301:DeactivationDate" />
+      <element ref="sd:DepartmentIdentifier" />
+      <element minOccurs="0" ref="sd:DepartmentUUIDIdentifier" />
+      <element ref="sd20080201:DepartmentLevelIdentifier" />
+      <element minOccurs="0" ref="sd20080201:DepartmentName" />
+      <element minOccurs="0" ref="cvr20050322:ProductionUnitIdentifier" />
+      <element minOccurs="0" ref="sd20070301:PostalAddress" />
+      <element minOccurs="0" ref="sd20080201:ContactInformation" />
+    </sequence>
+  </complexType>
+</schema>

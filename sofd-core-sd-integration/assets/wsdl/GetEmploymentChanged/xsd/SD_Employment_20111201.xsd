@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema xmlns:sd20070401="http://rep.oio.dk/sd.dk/xml.schema/20070401/" xmlns:sd="urn:oio:sd:snitflader:2011.12.01" xmlns:sd20070301="http://rep.oio.dk/sd.dk/xml.schema/20070301/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="urn:oio:sd:snitflader:2011.12.01" xmlns="http://www.w3.org/2001/XMLSchema">
+  <include schemaLocation="SD_AnniversaryDate_20111201.xsd" />
+  <include schemaLocation="SD_EmploymentStatus_20111201.xsd" />
+  <include schemaLocation="SD_SalaryCodeGroup_20111201.xsd" />
+  <include schemaLocation="SD_Profession_20111201.xsd" />
+  <include schemaLocation="SD_EmploymentDepartment_20111201.xsd" />
+  <include schemaLocation="SD_WorkingTime_20111201.xsd" />
+  <include schemaLocation="SD_SalaryAgreement_20111201.xsd" />
+  <include schemaLocation="SD_EmploymentIdentifier_20111201.xsd" />
+  <import schemaLocation="SD_EmploymentDate_20070401.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <element name="Employment" type="sd:EmploymentType" />
+  <complexType name="EmploymentType">
+    <sequence>
+      <element ref="sd:EmploymentIdentifier" />
+      <element minOccurs="0" ref="sd20070401:EmploymentDate" />
+      <element minOccurs="0" ref="sd:AnniversaryDate" />
+      <choice minOccurs="0" maxOccurs="unbounded">
+        <element ref="sd:WorkingTime" />
+        <element ref="sd:EmploymentDepartment" />
+        <element ref="sd:Profession" />
+        <element ref="sd:EmploymentStatus" />
+        <element ref="sd:SalaryCodeGroup" />
+        <element ref="sd:SalaryAgreement" />
+      </choice>
+    </sequence>
+  </complexType>
+</schema>
