@@ -15,3 +15,5 @@
 ### functionality
 - **sofd-core-sf1601-integration** - sends digital post through SF1601 on the Serviceplatform
 - **sofd-core-odata** - exposes data in OS2sofd through an OData API
+- **sofd-core-sms-gateway** - allows sending SMS from OS2sofd through a configured SMS gateway
+
