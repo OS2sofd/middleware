@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN role_catalog_transfer_to_nemlogin_role_id VARCHAR(255) NULL;
