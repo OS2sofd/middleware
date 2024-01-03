@@ -30,7 +30,8 @@ namespace SofdCprIntegration
             string connectionString = Configuration.GetConnectionString("mysql");
             if (!string.IsNullOrEmpty(connectionString))
             {
-                services.AddDbContext<PersonContext>(options => options.UseMySql(connectionString));
+               
+                services.AddDbContext<PersonContext>(options => options.UseMySql(connectionString,ServerVersion.AutoDetect(connectionString)));
 
                 // Add Quartz services
                 services.AddSingleton<IJobFactory, SingletonJobFactory>();

@@ -83,7 +83,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class notatType
     {
 
@@ -187,7 +187,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class foraeldremyndighedType
     {
 
@@ -306,7 +306,7 @@ namespace PersonBaseDataExtendedService
 
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public enum foraeldremyndighedTypeType
     {
 
@@ -330,7 +330,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class usikkerhedDatoType
     {
 
@@ -370,7 +370,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class barnType
     {
 
@@ -394,7 +394,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class personRelationType
     {
 
@@ -437,7 +437,7 @@ namespace PersonBaseDataExtendedService
 
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/", IncludeInSchema = false)]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/", IncludeInSchema = false)]
     public enum ItemsChoiceType
     {
 
@@ -454,7 +454,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class relationerType
     {
 
@@ -542,7 +542,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class adresseHistorikType
     {
 
@@ -806,7 +806,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class usikkerhedDatoTidType
     {
 
@@ -846,7 +846,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class kontaktAdresseType
     {
 
@@ -998,7 +998,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class udrejseoplysningerType
     {
 
@@ -1134,7 +1134,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace =  "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class diversedistrikterType
     {
 
@@ -1190,7 +1190,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace =  "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class distrikterType
     {
 
@@ -1534,7 +1534,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class adresseType
     {
 
@@ -1910,7 +1910,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace =          "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class adressedataType
     {
 
@@ -1982,7 +1982,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class beskyttelseType
     {
 
@@ -2086,7 +2086,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace =  "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class umyndiggoerelseType
     {
 
@@ -2381,7 +2381,7 @@ namespace PersonBaseDataExtendedService
 
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace =  "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public enum umyndiggorelseRelationTypeType
     {
 
@@ -2401,7 +2401,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class statsborgerskabType
     {
 
@@ -2457,7 +2457,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class civilstandType
     {
 
@@ -2512,7 +2512,7 @@ namespace PersonBaseDataExtendedService
 
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public enum civilstandTypeType
     {
 
@@ -2544,7 +2544,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class separationType
     {
 
@@ -2584,7 +2584,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class statusType
     {
 
@@ -2640,7 +2640,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class foedselsregistreringOplysningerType
     {
 
@@ -2696,7 +2696,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class navnType
     {
 
@@ -2832,7 +2832,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class persondataType
     {
 
@@ -3239,7 +3239,7 @@ namespace PersonBaseDataExtendedService
 
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public enum koenType
     {
 
@@ -3253,7 +3253,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class PersonLookupResponseType
     {
 
@@ -3514,7 +3514,7 @@ namespace PersonBaseDataExtendedService
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/")]
     public partial class PersonLookupRequestType
     {
 
@@ -3584,14 +3584,12 @@ namespace PersonBaseDataExtendedService
     }
 
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.0.1-preview-30514-0828")]
-    [System.ServiceModel.ServiceContractAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/", ConfigurationName = "PersonBaseDataExtendedService.PersonBaseDataExtendedPortType")]
+    [System.ServiceModel.ServiceContractAttribute(Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/", ConfigurationName = "PersonBaseDataExtendedService.PersonBaseDataExtendedPortType")]
     public interface PersonBaseDataExtendedPortType
     {
 
-        [System.ServiceModel.OperationContractAttribute(Action = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/PersonLo" +
-            "okup", ReplyAction = "*")]
-        [System.ServiceModel.FaultContractAttribute(typeof(PersonBaseDataExtendedService.ServiceplatformFaultType), Action = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/PersonLo" +
-            "okup", Name = "ServiceplatformFault", Namespace = "http://serviceplatformen.dk/xml/schemas/ServiceplatformFault/1/")]
+        [System.ServiceModel.OperationContractAttribute(Action = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/PersonLookup", ReplyAction = "*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(PersonBaseDataExtendedService.ServiceplatformFaultType), Action = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/PersonLookup", Name = "ServiceplatformFault", Namespace = "http://serviceplatformen.dk/xml/schemas/ServiceplatformFault/1/")]
         [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults = true)]
         System.Threading.Tasks.Task<PersonBaseDataExtendedService.PersonLookupResponse> PersonLookupAsync(PersonBaseDataExtendedService.PersonLookupRequest request);
     }
@@ -3603,7 +3601,7 @@ namespace PersonBaseDataExtendedService
     public partial class PersonLookupRequest
     {
 
-        [System.ServiceModel.MessageBodyMemberAttribute(Name = "PersonLookupRequest", Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/", Order = 0)]
+        [System.ServiceModel.MessageBodyMemberAttribute(Name = "PersonLookupRequest", Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/", Order = 0)]
         public PersonBaseDataExtendedService.PersonLookupRequestType PersonLookupRequest1;
 
         public PersonLookupRequest()
@@ -3623,7 +3621,7 @@ namespace PersonBaseDataExtendedService
     public partial class PersonLookupResponse
     {
 
-        [System.ServiceModel.MessageBodyMemberAttribute(Name = "PersonLookupResponse", Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/4/", Order = 0)]
+        [System.ServiceModel.MessageBodyMemberAttribute(Name = "PersonLookupResponse", Namespace = "http://serviceplatformen.dk/xml/wsdl/soap11/CPR/PersonBaseDataExtended/5/", Order = 0)]
         public PersonBaseDataExtendedService.PersonLookupResponseType PersonLookupResponse1;
 
         public PersonLookupResponse()

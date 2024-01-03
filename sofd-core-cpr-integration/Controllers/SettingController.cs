@@ -23,11 +23,15 @@ namespace SofdCprIntegration
             CprSubscriptionWebServicePortTypeClient subscriptionService = new CprSubscriptionWebServicePortTypeClient(Configuration["SubscriptionService:serviceUrl"], Configuration["SubscriptionService:certPath"], Configuration["SubscriptionService:certPassword"]);
 
             RemoveAllType removeType = new RemoveAllType();
+            removeType.InvocationContext = GetInvocationContext();
             removeType.FilterGroup = FilterGroup.EventChangeCode;
             var tmp = subscriptionService.RemoveAllAsync(removeType).Result; // block call, so we are sure everything is gone before adding subscriptions
 
-            addChangeCodeSubscription(subscriptionService, "A01");
-            addChangeCodeSubscription(subscriptionService, "A04");
+            System.Console.WriteLine(tmp);
+
+            addChangeCodeSubscription(subscriptionService, "A01");  // flytning
+            addChangeCodeSubscription(subscriptionService, "A02");  // forsvinding *ny*
+            addChangeCodeSubscription(subscriptionService, "A04");  // genindrejse
             addChangeCodeSubscription(subscriptionService, "A07");
             addChangeCodeSubscription(subscriptionService, "A09");
             addChangeCodeSubscription(subscriptionService, "A13");
@@ -35,8 +39,12 @@ namespace SofdCprIntegration
             addChangeCodeSubscription(subscriptionService, "A15");
             addChangeCodeSubscription(subscriptionService, "A16");
             addChangeCodeSubscription(subscriptionService, "A17");
+            addChangeCodeSubscription(subscriptionService, "A21");  // dødsfald/enkestand *ny*
+            addChangeCodeSubscription(subscriptionService, "A22");  // opdaterer cilvilstand *ny*
+            addChangeCodeSubscription(subscriptionService, "A24");  // korrektion af cilvilstand *ny*
             addChangeCodeSubscription(subscriptionService, "A33");
             addChangeCodeSubscription(subscriptionService, "A42");
+            addChangeCodeSubscription(subscriptionService, "A73");  // opdater unyndiggørelse *ny*
             addChangeCodeSubscription(subscriptionService, "P10");
             addChangeCodeSubscription(subscriptionService, "P11");
 
@@ -47,6 +55,7 @@ namespace SofdCprIntegration
             GetAllFiltersResponse allFilters = subscriptionService.GetAllFiltersAsync(getAllFilters).Result;
 */
             // A01, A04, A07, A09, A13, A14, A15, A16, A17, A33, A42, P10, P11
+            System.Console.WriteLine("Subscription updated");
 
             return Ok();
         }

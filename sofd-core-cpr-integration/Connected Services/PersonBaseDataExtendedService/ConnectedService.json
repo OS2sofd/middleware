@@ -3,7 +3,7 @@
   "Version": "15.0.30515.712",
   "ExtendedData": {
     "inputs": [
-      "C:/Users/Piotr/Projects/sofd-cpr-integration/sofd-cpr-integration/Resources/wsdl/context/PersonBaseDataExtendedService.wsdl"
+      "C:\\Users\\Andreas\\Desktop\\wsdl\\context\\PersonBaseDataExtendedService.wsdl"
     ],
     "collectionTypes": [
       "System.Array",

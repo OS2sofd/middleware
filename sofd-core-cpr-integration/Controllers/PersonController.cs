@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using CprSubscriptionService;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -29,7 +30,7 @@ namespace SofdCprIntegration.Controllers
 
         [EnableCors("AllowMyOrigin")]
         [HttpGet]
-        public ActionResult<Person> Get([FromQuery]string cpr, [FromQuery]string cvr, [FromQuery] Boolean avoidCache)
+        public ActionResult<Person> Get([FromQuery]string cpr, [FromQuery]string cvr, [FromQuery] Boolean avoidCache, [FromQuery] Boolean useAddressName = false)
         {
             if (!Validate(cpr))
             {
@@ -72,13 +73,23 @@ namespace SofdCprIntegration.Controllers
 
                     Person person = new Person();
 
-                    person.Firstname = response.PersonLookupResponse1.persondata.navn.fornavn;
-                    if (!string.IsNullOrEmpty(response.PersonLookupResponse1.persondata.navn.mellemnavn))
+                    var addressName = response.PersonLookupResponse1.persondata.navn.personadresseringsnavn;
+                    if (!String.IsNullOrWhiteSpace(addressName) && useAddressName)
                     {
-                        person.Firstname = person.Firstname + " " + response.PersonLookupResponse1.persondata.navn.mellemnavn;
+                        var names = new Stack<string>(Regex.Split(addressName, @"\s+"));
+                        person.Lastname = names.Pop();
+                        person.Firstname = String.Join(" ", names.Reverse());
                     }
+                    else
+                    {
+                        person.Firstname = response.PersonLookupResponse1.persondata.navn.fornavn;
+                        if (!string.IsNullOrEmpty(response.PersonLookupResponse1.persondata.navn.mellemnavn))
+                        {
+                            person.Firstname = person.Firstname + " " + response.PersonLookupResponse1.persondata.navn.mellemnavn;
+                        }
 
-                    person.Lastname = response.PersonLookupResponse1.persondata.navn.efternavn;
+                        person.Lastname = response.PersonLookupResponse1.persondata.navn.efternavn;
+                    }
 
                     if (response.PersonLookupResponse1.adresse?.aktuelAdresse?.standardadresse != null)
                     {
@@ -88,7 +99,7 @@ namespace SofdCprIntegration.Controllers
                         person.City = response.PersonLookupResponse1.adresse.aktuelAdresse.postdistrikt;
                         person.Country = "Danmark";
                     }
-                    else {
+                    else if (response.PersonLookupResponse1.adresse?.udrejseoplysninger?.udlandsadresse1 != null) {
                         person.Street = response.PersonLookupResponse1.adresse.udrejseoplysninger.udlandsadresse1;
                         person.Localname = null;
 
@@ -114,9 +125,9 @@ namespace SofdCprIntegration.Controllers
                     person.IsDead = false;
                     if (response.PersonLookupResponse1.persondata?.status?.status != null)
                     {
-                        // 90 is "Død", 70 is "Bortkommet"
-                        if (90 == response.PersonLookupResponse1.persondata.status.status ||
-                            70 == response.PersonLookupResponse1.persondata.status.status) {
+                        // 01,03,05,07 are all active
+                        // 20,30,50,60,70,80,90 are all inactive (dead, lost, cancelled, etc)
+                        if (response.PersonLookupResponse1.persondata.status.status > 10) {
                             person.IsDead = true;
                         }
                     }
