@@ -1,5 +1,6 @@
 package dk.sofd.opus.task;
 
+import dk.sofd.opus.dao.model.Municipality;
 import dk.sofd.opus.service.model.OrgUnit;
 import dk.sofd.opus.service.model.Phone;
 import dk.sofd.opus.service.model.Post;
@@ -18,7 +19,7 @@ public class OrgUnitConverter {
 	@Value("${opus.master.identifier:OPUS}")
 	private String opusMasterIdentifier;
 
-	public OrgUnit toOrgUnit(KmdOrgUnitWrapper wrapper) {
+	public OrgUnit toOrgUnit(Municipality municipality, KmdOrgUnitWrapper wrapper) {
 		dk.kmd.opus.OrgUnit opusOrgUnit = wrapper.getOrgUnit();
 		OrgUnit orgUnit = new OrgUnit();
 
@@ -54,7 +55,7 @@ public class OrgUnitConverter {
 		}
 
 		orgUnit.setPhones(new HashSet<>());
-		if (!StringUtils.isEmpty(opusOrgUnit.getPhoneNumber())) {
+		if (!municipality.isNoOuPhones() && !StringUtils.isEmpty(opusOrgUnit.getPhoneNumber())) {
 			orgUnit.getPhones().add(Phone.builder()
 							.master(opusMasterIdentifier)
 							.masterId(opusOrgUnit.getId())

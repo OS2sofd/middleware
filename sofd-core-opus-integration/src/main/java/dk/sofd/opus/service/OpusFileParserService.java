@@ -1,28 +1,44 @@
 package dk.sofd.opus.service;
 
-import dk.kmd.opus.Employee;
-import dk.kmd.opus.Kmd;
-import dk.sofd.opus.dao.model.Municipality;
-import dk.sofd.opus.io.OpusXMLParser;
-import dk.sofd.opus.service.model.*;
-import dk.sofd.opus.task.EmployeeConverter;
-import dk.sofd.opus.task.OrgUnitConverter;
-import dk.sofd.opus.task.model.KmdOrgUnitWrapper;
-import dk.sofd.opus.utility.ObjectCloner;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import dk.kmd.opus.Employee;
+import dk.kmd.opus.Kmd;
+import dk.sofd.opus.dao.model.Municipality;
+import dk.sofd.opus.io.OpusXMLParser;
+import dk.sofd.opus.service.model.Affiliation;
+import dk.sofd.opus.service.model.OpusFilterRulesDTO;
+import dk.sofd.opus.service.model.OrgUnit;
+import dk.sofd.opus.service.model.Person;
+import dk.sofd.opus.service.model.Phone;
+import dk.sofd.opus.service.model.User;
+import dk.sofd.opus.task.EmployeeConverter;
+import dk.sofd.opus.task.OrgUnitConverter;
+import dk.sofd.opus.task.model.KmdOrgUnitWrapper;
+import dk.sofd.opus.utility.ObjectCloner;
+import lombok.extern.slf4j.Slf4j;
+import net.minidev.json.JSONObject;
 
 @Service
 @Slf4j
@@ -67,7 +83,12 @@ public class OpusFileParserService {
 	@Transactional
 	public void parseOpusFiles() {
 		for (Municipality municipality : municipalityService.findAll()) {
-			log.info("Syncing " + municipality.getName());
+
+			if (municipality.isDisabled()) {
+				log.warn("Skipping disabled municipality: " + municipality.getName());
+				continue;
+			}
+			
 			try {
 				String newestOpusFile = s3Service.getNewestFilename(municipality, "opus");
 
@@ -90,10 +111,12 @@ public class OpusFileParserService {
 					}
 
 					OpusFilterRulesDTO filterRules = sofdCoreStub.getSettings(municipality);
-
+					
 					// make sure OrgUnits are updated
-					log.info("Performing update on OrgUnits: " + kmd.getOrgUnit().size() + " for " + municipality.getName());
-					executeOrgUnits(kmd.getOrgUnit(), municipality, filterRules);
+					if (!municipality.isSkipOrgUnits()) {
+						log.info("Performing update on OrgUnits: " + kmd.getOrgUnit().size() + " for " + municipality.getName());
+						executeOrgUnits(kmd.getOrgUnit(), municipality, filterRules);
+					}
 
 					// fetch an updated list, for updating user-references
 					log.info("Re-reading all OrgUnits for " + municipality.getName());
@@ -105,7 +128,7 @@ public class OpusFileParserService {
 					// map users and update them
 					List<Employee> employees = kmd.getEmployee().stream().filter(e -> !"leave".equals(e.getAction())).collect(Collectors.toList());
 					log.info("Performing update on Persons: " + employees.size() + " for " + municipality.getName());
-					List<Person> updatedPerson = executePersons(employees, orgUnits, municipality, filterRules, (map.size() > 0));
+					List<Person> updatedPerson = executePersons(employees, orgUnits, municipality, filterRules, (map.size() > 0), kmd.getOrgUnit());
 
 					// update extra affiliations
 					if (map.size() > 0) {
@@ -223,7 +246,7 @@ public class OpusFileParserService {
 		flagOrgUnitsToBeCreated(flat, orgUnits);
 
 		// flag all orgUnits that should be updated
-		flagOrgUnitsToBeUpdated(flat, orgUnits);
+		flagOrgUnitsToBeUpdated(municipality, flat, orgUnits);
 
 		// find all orgUnits that should be "deleted"
 		List<dk.sofd.opus.service.model.OrgUnit> orgUnitsToBeDeleted = findAllOrgUnitsNotInOpus(flat, orgUnits);
@@ -256,10 +279,10 @@ public class OpusFileParserService {
 		}
 	}
 
-	private List<Person> executePersons(List<Employee> employees, List<dk.sofd.opus.service.model.OrgUnit> orgUnits, Municipality municipality, OpusFilterRulesDTO filterRules, boolean reload) throws Exception {
-
+	private List<Person> executePersons(List<Employee> employees, List<dk.sofd.opus.service.model.OrgUnit> orgUnits, Municipality municipality, OpusFilterRulesDTO filterRules, boolean reload, List<dk.kmd.opus.OrgUnit> losUnits) throws Exception {
+				
 		// merge Employee records
-		List<Person> opusPersons = mergeEmployeeRecords(municipality, employees, orgUnits, filterRules);
+		List<Person> opusPersons = mergeEmployeeRecords(municipality, employees, orgUnits, filterRules, losUnits);
 
 		// read existing data from SOFD
 		List<Person> persons = sofdCoreStub.getPersons(municipality);
@@ -268,7 +291,7 @@ public class OpusFileParserService {
 		List<Person> personsToBeCreated = findPersonsToBeCreated(opusPersons, persons);
 
 		// find all persons that should be updated
-		List<Person> personsToBeUpdated = findPersonsToBeUpdated(opusPersons, persons);
+		List<Person> personsToBeUpdated = findPersonsToBeUpdated(opusPersons, persons, filterRules);
 
 		// find all persons that should be "deleted"
 		List<Person> personsToBeDeleted = findPersonsToBeDeleted(opusPersons, persons);
@@ -376,7 +399,7 @@ public class OpusFileParserService {
 		return toBeDeleted;
 	}
 
-	private List<Person> findPersonsToBeUpdated(List<Person> opusPersons, List<Person> persons) throws IOException {
+	private List<Person> findPersonsToBeUpdated(List<Person> opusPersons, List<Person> persons, OpusFilterRulesDTO rules) throws IOException {
 		List<Person> toBeUpdated = new ArrayList<>();
 
 		for (Person opusPerson : opusPersons) {
@@ -399,7 +422,7 @@ public class OpusFileParserService {
 				Person originalSofdPerson = objectCloner.deepCopy(sofdPerson);
 
 				// make changes from opus person to sofdperson
-				copyFieldToSofdPerson(sofdPerson, opusPerson);
+				copyFieldToSofdPerson(sofdPerson, opusPerson, rules);
 
 				// if an existing Person has employee-typed affiliations created by SOFD, that duplicates
 				// affiliations owned by OPUS, then we remove the SOFD affiliations
@@ -408,6 +431,13 @@ public class OpusFileParserService {
 				// if they are not equal (custom equals on Person class), we
 				// must make an update
 				if (!sofdPerson.equals(originalSofdPerson)) {
+					/* til at teste med hvis vi får "alle opdateres" under en kørsel
+					if ("6cadcd98-6872-4528-94f5-0034ff54d4e4".equals(sofdPerson.getUuid())) {
+						log.warn("not equals");
+						log.warn("sofdPerson = " + sofdPerson.toString());
+						log.warn("originalSofdPerson = " + originalSofdPerson.toString());
+					}
+					*/
 					toBeUpdated.add(sofdPerson);
 				}
 			}
@@ -426,11 +456,19 @@ public class OpusFileParserService {
 				.filter(a -> a.getMaster().equals(sofdMasterIdentifier) && a.getStopDate() == null)
 				.collect(Collectors.toList());
 
-		for (Affiliation sofdAffiliation : sofdAffiliations) {
-			if (person.getAffiliations().stream()
-					.anyMatch(a -> a.getMaster().equals(opusMasterIdentifier) &&
-							a.getOrgUnitUuid().equals(sofdAffiliation.getOrgUnitUuid()))) {
+		LocalDate tomorrow = LocalDate.now().plusDays(1);
+		LocalDate yesterday = LocalDate.now().minusDays(1);
 
+		List<Affiliation> activeOpusAffiliations = person.getAffiliations().stream()
+				.filter(a -> a.getMaster().equals(opusMasterIdentifier) &&
+						!a.isDeleted() &&
+						(a.getStartDate() == null || (a.getStartDate().length() >= 10 && LocalDate.parse(a.getStartDate().substring(0, 10)).isBefore(tomorrow))) &&
+						(a.getStopDate() == null || (a.getStopDate().length() >= 10 && LocalDate.parse(a.getStopDate().substring(0, 10)).isAfter(yesterday))))
+				.collect(Collectors.toList());
+
+		for (Affiliation sofdAffiliation : sofdAffiliations) {
+			if (activeOpusAffiliations.stream().anyMatch(a -> a.getOrgUnitUuid().equals(sofdAffiliation.getOrgUnitUuid()))) {
+				log.info("Stopping SOFD affiliation with masterId " + sofdAffiliation.getMasterId() + " because an active OPUS affiliation exists in the same orgunit");
 				sofdAffiliation.setStopDate(toLocalDate(new Date()).toString());
 			}
 		}
@@ -438,7 +476,7 @@ public class OpusFileParserService {
 
 	// when performing an update, we need to use the object we got from SOFD,
 	// and copy relevant fields from our OPUS object
-	private void copyFieldToSofdPerson(Person sofdPerson, Person opusPerson) {
+	private void copyFieldToSofdPerson(Person sofdPerson, Person opusPerson, OpusFilterRulesDTO rules) {
 
 		// in case AD was the original master, we "steal" it
 		sofdPerson.setMaster(opusMasterIdentifier);
@@ -478,8 +516,6 @@ public class OpusFileParserService {
 			}
 		}
 
-		String today = LocalDate.now().toString();
-
 		// find all affiliations owned by OPUS in SOFD Core, and perform updates on them - any new ones just get copied in AS-IS,
 		// we do this to preserve the UUID on updates
 		List<Affiliation> updatedAffiliations = new ArrayList<>();
@@ -494,12 +530,21 @@ public class OpusFileParserService {
 			boolean found = false;
 
 			for (Affiliation opusAffiliation : opusPerson.getAffiliations()) {
-				if (Objects.equals(opusAffiliation.getMaster(), affiliation.getMaster()) &&
-						Objects.equals(opusAffiliation.getMasterId(), affiliation.getMasterId())) {
+				if (Objects.equals(opusAffiliation.getMaster(), affiliation.getMaster()) && Objects.equals(opusAffiliation.getMasterId(), affiliation.getMasterId())) {
 
 					// preserve UUID, copy the rest
 					opusAffiliation.setUuid(affiliation.getUuid());
 					opusAffiliation.setPersonUuid(sofdPerson.getUuid());
+					
+					// if the new position name is invalid, preserve the old position name
+					if (rules.isEnabled()) {
+						if (rules.getInvalidPositionNames() != null && !rules.getInvalidPositionNames().isEmpty()) {
+							if (rules.getInvalidPositionNames().stream().map(i -> i.toLowerCase()).collect(Collectors.toList()).contains(opusAffiliation.getPositionName().toLowerCase())) {
+								opusAffiliation.setPositionName(affiliation.getPositionName());
+							}
+						}
+					}
+					
 					updatedAffiliations.add(opusAffiliation);
 
 					iterator.remove();
@@ -510,9 +555,10 @@ public class OpusFileParserService {
 			}
 
 			// the affiliation no longer exists in the OPUS file - if no stopDate is set (or a stopDate is set in the future)
-			// we update the stopDate to TODAY, as that is the best we can do
-			if (!found && (affiliation.getStopDate() == null || affiliation.getStopDate().compareTo(today) > 0)) {
-				affiliation.setStopDate(today);
+			// we update the stopDate to YESTERDAY, as that is the best we can do
+			String yesterday = LocalDate.now().minusDays(1).toString();
+			if (!found && (affiliation.getStopDate() == null || affiliation.getStopDate().compareTo(yesterday) > 0)) {
+				affiliation.setStopDate(yesterday);
 			}
 		}
 
@@ -525,8 +571,7 @@ public class OpusFileParserService {
 
 			// does it already exist in SOFD?
 			for (Affiliation sofdAffiliation : sofdPerson.getAffiliations()) {
-				if (Objects.equals(sofdAffiliation.getMaster(), affiliation.getMaster()) &&
-						Objects.equals(sofdAffiliation.getMasterId(), affiliation.getMasterId())) {
+				if (Objects.equals(sofdAffiliation.getMaster(), affiliation.getMaster()) && Objects.equals(sofdAffiliation.getMasterId(), affiliation.getMasterId())) {
 					found = true;
 					break;
 				}
@@ -563,9 +608,11 @@ public class OpusFileParserService {
 		return toBeCreated;
 	}
 
-	private List<Person> mergeEmployeeRecords(Municipality municipality, List<Employee> employees, List<dk.sofd.opus.service.model.OrgUnit> orgUnits, OpusFilterRulesDTO filterRules) throws Exception {
-
+	private List<Person> mergeEmployeeRecords(Municipality municipality, List<Employee> employees, List<dk.sofd.opus.service.model.OrgUnit> orgUnits, OpusFilterRulesDTO filterRules, List<dk.kmd.opus.OrgUnit> losUnits) throws Exception {
 		Set<String> cprs = new HashSet<>();
+		List<Employee> filteredEmployees = new ArrayList<Employee>();
+		Set<String> missingLosIds = new HashSet<>();
+		
 		for (Employee employee : employees) {
 			if (filterRules.isEnabled()) {
 
@@ -575,13 +622,20 @@ public class OpusFileParserService {
 						continue;
 					}
 				}
+				
+				// filter employements based on positionNames
+				if (filterRules.getPositionNames() != null && !filterRules.getPositionNames().isEmpty()) {
+					if (filterRules.getPositionNames().stream().map(p -> p.toLowerCase()).collect(Collectors.toList()).contains(employee.getPosition().toLowerCase())) {
+						continue;
+					}
+				}
 			}
 
 			// skip these empty records
 			if (employee.getAction() != null && employee.getAction().equals("leave")) {
 				continue;
 			}
-
+			filteredEmployees.add(employee);
 			cprs.add(employee.getCpr().getValue());
 		}
 
@@ -592,18 +646,49 @@ public class OpusFileParserService {
 					.collect(Collectors.toList());
 
 			// ensure someone with a blocked position and a non-blocked position gets the blocked positions filtered here as well
-			if (filterRules.isEnabled() && filterRules.getPositionIds() != null && filterRules.getPositionIds().size() > 0) {
-				employeesWithCpr = employeesWithCpr.stream()
-						.filter(e -> !filterRules.getPositionIds().contains(Integer.toString(e.getPositionId())))
-						.collect(Collectors.toList());
+			if (filterRules.isEnabled()) {
+				if (filterRules.getPositionIds() != null && filterRules.getPositionIds().size() > 0) {
+					employeesWithCpr = employeesWithCpr.stream()
+							.filter(e -> !filterRules.getPositionIds().contains(Integer.toString(e.getPositionId())))
+							.collect(Collectors.toList());
+				}
+			
+				if (filterRules.getPositionNames() != null && !filterRules.getPositionNames().isEmpty()) {
+					employeesWithCpr = employeesWithCpr.stream()
+							.filter(e -> !filterRules.getPositionNames().stream().map(p -> p.toLowerCase()).collect(Collectors.toList()).contains(e.getPosition().toLowerCase()))
+							.collect(Collectors.toList());
+				}
 			}
 
-			Person person = employeeConverter.toPerson(municipality, cpr, employeesWithCpr, orgUnits);
+			Person person = employeeConverter.toPerson(municipality, cpr, employeesWithCpr, orgUnits, filteredEmployees, missingLosIds);
 			if (person != null) {
 				persons.add(person);
 			}
 		}
 
+		Set<JSONObject> notifications = new HashSet<>();
+		for (String id : missingLosIds) {
+			for (dk.kmd.opus.OrgUnit losUnit : losUnits) {
+				if (Objects.equals(losUnit.getId(), id)) {
+					JSONObject request = new JSONObject();
+					request.put("affectedEntityUuid", "");
+					request.put("affectedEntityType", "ORGUNIT");
+					request.put("affectedEntityName", losUnit.getLongName());
+					request.put("notificationType", "UNMATCHED_WAGES_ORGUNIT");
+					request.put("message", "Der er ansatte i LOS enheden " + id + " ved navn '" + losUnit.getLongName() + "', men der findes ikke noget OPUS TAG med dette ID, så de ansatte i denne enhed kommer ikke over i OS2sofd");
+					request.put("eventDate", LocalDate.now().toString());
+
+					notifications.add(request);
+					break;
+				}
+			}
+		}
+
+		if (notifications.size() > 0) {
+			log.info(municipality.getName() + ": Sending notification about " + notifications.size() + " orgunits without OPUS tag mappings!");
+			sofdCoreStub.createNotifications(notifications, municipality);
+		}
+		
 		return persons;
 	}
 
@@ -615,7 +700,7 @@ public class OpusFileParserService {
 
 	// recursive, from root of tree, to ensure parent-relationships consistency
 	private void updateCreateOrgUnitsInSofdCore(KmdOrgUnitWrapper wrapper, Municipality municipality) throws Exception {
-		dk.sofd.opus.service.model.OrgUnit orgUnit = orgUnitConverter.toOrgUnit(wrapper);
+		dk.sofd.opus.service.model.OrgUnit orgUnit = orgUnitConverter.toOrgUnit(municipality, wrapper);
 
 		if (wrapper.isToBeCreated()) {
 			sofdCoreStub.create(orgUnit, municipality);
@@ -670,7 +755,7 @@ public class OpusFileParserService {
 		return result;
 	}
 
-	private void flagOrgUnitsToBeUpdated(List<KmdOrgUnitWrapper> opusOrgUnits, List<dk.sofd.opus.service.model.OrgUnit> coreOrgUnits) {
+	private void flagOrgUnitsToBeUpdated(Municipality municipality, List<KmdOrgUnitWrapper> opusOrgUnits, List<dk.sofd.opus.service.model.OrgUnit> coreOrgUnits) {
 		for (KmdOrgUnitWrapper opusOrgUnit : opusOrgUnits) {
 			boolean found = false;
 
@@ -679,7 +764,7 @@ public class OpusFileParserService {
 					// keep a reference for later
 					opusOrgUnit.setSofdOrgUnit(coreOrgUnit);
 
-					if (changes(opusOrgUnit, coreOrgUnit)) {
+					if (changes(municipality, opusOrgUnit, coreOrgUnit)) {
 						found = true;
 					}
 
@@ -693,8 +778,8 @@ public class OpusFileParserService {
 		}
 	}
 
-	private boolean changes(KmdOrgUnitWrapper opusOrgUnit, dk.sofd.opus.service.model.OrgUnit coreOrgUnit) {
-		dk.sofd.opus.service.model.OrgUnit localVersion = orgUnitConverter.toOrgUnit(opusOrgUnit);
+	private boolean changes(Municipality municipality, KmdOrgUnitWrapper opusOrgUnit, dk.sofd.opus.service.model.OrgUnit coreOrgUnit) {
+		dk.sofd.opus.service.model.OrgUnit localVersion = orgUnitConverter.toOrgUnit(municipality, opusOrgUnit);
 
 		// there might be local Phone Numbers in SOFD Core, that we need to include the the local version before we compare
 		if (coreOrgUnit.getPhones() != null) {

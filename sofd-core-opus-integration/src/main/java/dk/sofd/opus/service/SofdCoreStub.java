@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import net.minidev.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -218,6 +220,15 @@ public class SofdCoreStub {
 		ResponseEntity<String> response = restTemplate.exchange(url + "/v2/orgUnits/" + orgUnit.getUuid(), HttpMethod.PATCH, request, String.class);
 		if (response.getStatusCodeValue() < 200 || response.getStatusCodeValue() > 299) {
 			log.error("Failed to delete OrgUnit " + orgUnit.getUuid() + ". " + response.getStatusCodeValue() + ", response=" + response.getBody());
+		}
+	}
+	
+	public void createNotifications(Set<JSONObject> missingLosIDS, Municipality municipality) throws Exception {
+		HttpEntity<Set<JSONObject>> req = new HttpEntity<>(missingLosIDS, getHeaders(municipality.getApiKey()));
+		ResponseEntity<String> response = restTemplate.exchange(municipality.getUrl() + "/notifications", HttpMethod.POST, req, String.class);
+
+		if (response.getStatusCodeValue() < 200 || response.getStatusCodeValue() > 299) {
+			log.error("Failed to create notifications via API for Sofd: " + response.getBody());
 		}
 	}
 

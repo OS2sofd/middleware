@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
@@ -12,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +28,6 @@ import dk.sofd.opus.service.model.OrgUnit;
 import dk.sofd.opus.service.model.Person;
 import dk.sofd.opus.service.model.Post;
 import dk.sofd.opus.service.model.User;
-import dk.sofd.opus.service.model.enums.AffiliationFunction;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -38,11 +39,14 @@ public class EmployeeConverter {
 
     @Value("${opus.master.identifier:OPUS}")
     private String opusMasterIdentifier;
-    
+
     @Value("${opus.master.identifier:OPUS-MANAGER}")
     private String opusManagerMasterIdentifier;
-    
-    public Person toPerson(Municipality municipality, String cpr, List<Employee> employeesWithCpr, List<OrgUnit> orgUnits) throws Exception {
+
+	@Value("${sofd.tags.value:OPUS}")
+	private String opusTagName;
+
+    public Person toPerson(Municipality municipality, String cpr, List<Employee> employeesWithCpr, List<OrgUnit> orgUnits, List<Employee> allFilteredEmployees, Set<String> missingLosIds) throws Exception {
         // lowest work contract is usually the primary affiliation and therefore the best prototype
         // 00->Månedsløn forud,01->Månedsløn bagud,03->Måneds-/timeløn,08->Tj.pension,99->Ikke defineret
         Employee prototype = employeesWithCpr.stream().sorted(Comparator.comparing(Employee::getWorkContract)).findFirst().get();
@@ -55,7 +59,7 @@ public class EmployeeConverter {
         person.setSurname(prototype.getLastName());
 
         // only add the address if the value (street) is present and doesn't contain KMD special char sequences. e.g. **ADRESSEBESKYTTET**
-        if (prototype.getAddress() != null) {
+        if (municipality.isPrivateAddressEnabled() && prototype.getAddress() != null) {
 			if (!StringUtils.isEmpty(prototype.getAddress().getValue()) && !prototype.getAddress().getValue().contains("**")) {
 	            person.setRegisteredPostAddress(Post.builder()
 	                    .addressProtected(prototype.getAddress().isProtected() != null ? prototype.getAddress().isProtected() : false)
@@ -80,21 +84,49 @@ public class EmployeeConverter {
 		}
 
 		person.setAffiliations(new HashSet<>());
+
 		for (Employee emp : employeesWithCpr) {
+
 			// locate the uuid of the OrgUnit the affiliation points to
 			String orgUnitUuid = null;
-			for (OrgUnit orgUnit : orgUnits) {
-				if (orgUnit.getMasterId().equals(Integer.toString(emp.getOrgUnit()))) {
-					// we don't want affiliations pointing to deleted orgUnits (why do they even have those?)
-					if (!orgUnit.isDeleted()) {
-						orgUnitUuid = orgUnit.getUuid();
+			if (municipality.isSkipOrgUnits()) {
+				boolean found = false;
+
+				for (OrgUnit orgUnit : orgUnits) {
+					if (orgUnit.getTags().stream()
+							.anyMatch(t -> t.getTag().equals(opusTagName) &&
+									       Arrays.stream(t.getCustomValue().split(";")).anyMatch(s -> Objects.equals(s, Integer.toString(emp.getOrgUnit())))
+						)) {
+
+						// we don't want affiliations pointing to deleted orgUnits (why do they even have those?)
+						if (!orgUnit.isDeleted()) {
+							orgUnitUuid = orgUnit.getUuid();
+						}
+
+						found = true;
+						break;
 					}
-					break;
+				}
+
+				if (!found) {
+					missingLosIds.add(Integer.toString(emp.getOrgUnit()));
+				}
+			}
+			else {
+				for (OrgUnit orgUnit : orgUnits) {
+					if (orgUnit.getMasterId().equals(Integer.toString(emp.getOrgUnit()))) {
+
+						// we don't want affiliations pointing to deleted orgUnits (why do they even have those?)
+						if (!orgUnit.isDeleted()) {
+							orgUnitUuid = orgUnit.getUuid();
+						}
+						break;
+					}
 				}
 			}
 
 			if (orgUnitUuid == null) {
-				log.warn("Could not find an OrgUnit with LOS-ID: " + emp.getOrgUnit());
+				log.debug("Could not find an OrgUnit with LOS-ID: " + emp.getOrgUnit());
 				continue;
 			}
 
@@ -118,67 +150,80 @@ public class EmployeeConverter {
 					continue;
 				}
 			}
-			
+
 			Affiliation affiliation = new Affiliation();
 			affiliation.setUuid(UUID.randomUUID().toString());
 			affiliation.setStartDate(toLocalDate(entryDate).toString());
 			affiliation.setStopDate((leaveDate != null) ? (toLocalDate(leaveDate).toString()) : null);
-			affiliation.setAffiliationType("EMPLOYEE");
 			affiliation.setEmployeeId(Integer.toString(emp.getId()));
 			affiliation.setEmploymentTerms(emp.getWorkContract());
 			affiliation.setEmploymentTermsText(emp.getWorkContractText());
+			setAffiliationType(affiliation, municipality);
 			affiliation.setMaster(opusMasterIdentifier);
 			affiliation.setMasterId(Integer.toString(emp.getId()));
 			affiliation.setOrgUnitUuid(orgUnitUuid);
-			affiliation.setPayGrade(emp.getPayGradeText());
-			
+
+			// use paygrade if not null, else use paygrade text
+			var payGrade = emp.getPayGrade() != null ? emp.getPayGrade() : emp.getPayGradeText();
+			// ensure not null as null will cause endless updates due to patch operation in SOFD
+			payGrade = payGrade != null ? payGrade : "";
+			affiliation.setPayGrade(payGrade);
+
 			if (municipality.isIncludeWageStep()) {
 				affiliation.setWageStep(emp.getWageStep());
 			}
-			
+
 			affiliation.setPositionId(emp.getPositionId() != null ? Integer.toString(emp.getPositionId()) : null);
 			affiliation.setPositionName((!StringUtils.isEmpty(emp.getPosition()) ? emp.getPosition() : "Ukendt"));
 			affiliation.setPositionTypeId(emp.getJobId() != null ? Integer.toString(emp.getJobId()) : null);
 			affiliation.setPositionTypeName(emp.getJob());
-			
+
 			Double denominator = emp.getDenominator() != null ? emp.getDenominator().doubleValue() : null;
 			Double numerator = emp.getNumerator() != null ? emp.getNumerator().doubleValue() : null;
 			if (denominator == null || numerator == null) {
 				denominator = null;
 				numerator = null;
 			}
-			else if (denominator > 99) {
+			else if (denominator > 99 && numerator <= 100) {
 				// special case - if the number is a percentage instead, convert to hours like this
 				denominator = 37.0;
 				numerator = (numerator * 37.0) / 100;
 			}
-			
+			else if (denominator > 99 && numerator > 99) {
+				// this is just silly - nobody works like that
+				denominator = 37.0;
+				numerator = 37.0;
+			}
+
 			affiliation.setWorkingHoursDenominator(denominator);
 			affiliation.setWorkingHoursNumerator(numerator);
 			affiliation.setFunctions(new HashSet<>());
 
 			for (Function function : emp.getFunction()) {
 				if (function.getStartDate().toGregorianCalendar().before(Calendar.getInstance()) && function.getEndDate().toGregorianCalendar().after(Calendar.getInstance())) {
-					if (function.getArtId() == municipality.getMedudvalg()) {
-						affiliation.getFunctions().add(AffiliationFunction.MED_UDVALG);
-					}
-					if (function.getArtId() == municipality.getSr()) {
-						affiliation.getFunctions().add(AffiliationFunction.SR);
-					}
-					if (function.getArtId() == municipality.getTr()) {
-						affiliation.getFunctions().add(AffiliationFunction.TR);
-					}
-					if (function.getArtId() == municipality.getTrSuppleant()) {
-						affiliation.getFunctions().add(AffiliationFunction.TR_SUPPLEANT);
+					var artIdKey = String.valueOf(function.getArtId());
+					if( municipality.getFunctionMap().containsKey(artIdKey)) {
+						affiliation.getFunctions().add(municipality.getFunctionMap().get(artIdKey));
 					}
 				}
 			}
 
 			affiliation.setManagerForUuids(new HashSet<>());
-			if (emp.isIsManager() != null && emp.isIsManager() == true) {
-				affiliation.getManagerForUuids().add(orgUnitUuid);
+			if (emp.isIsManager() != null && emp.isIsManager()) {
+				// if we get SuperiorLevel from KMD, we only add this employee as manager if there is not another better choice as manager for the same orgUnit
+				if( emp.getSuperiorLevel() == null || allFilteredEmployees.stream().noneMatch(e ->
+						e.getOrgUnit().intValue() == emp.getOrgUnit().intValue()
+						&& e.isIsManager() != null
+						&& e.isIsManager()
+						&& e.getId() != emp.getId()
+						&& (StringUtils.isEmpty(e.getEntryDate()) || LocalDate.parse(e.getEntryDate()).isBefore(LocalDate.now().plusDays(1)))
+						&& (StringUtils.isEmpty(e.getLeaveDate()) || LocalDate.parse(e.getLeaveDate()).isAfter(LocalDate.now().minusDays(1)))
+						&& e.getSuperiorLevel() < emp.getSuperiorLevel()
+				)) {
+					affiliation.getManagerForUuids().add(orgUnitUuid);
+				}
 			}
-			
+
 			// special manager OU placement(s) for managers
 			String managerOUs = null;
 			if (emp.getSuperiorLevel() != null) {
@@ -201,7 +246,7 @@ public class EmployeeConverter {
 			}
 
 			if (!StringUtils.isEmpty(managerOUs)) {
-				
+
 				for (String managerOU : managerOUs.split(",")) {
 					Affiliation managerAffiliation = new Affiliation();
 					managerAffiliation.setUuid(UUID.randomUUID().toString());
@@ -217,15 +262,15 @@ public class EmployeeConverter {
 					managerAffiliation.setPositionTypeName(emp.getJob());
 					managerAffiliation.setFunctions(new HashSet<>());
 					managerAffiliation.setManagerForUuids(new HashSet<>());
-					
+
 					person.getAffiliations().add(managerAffiliation);
 				}
 			}
 
 			Map<String, String> localExtensions = new HashMap<>();
-			
+
 			String[] localExtensionFields = municipality.getLocalExtensionFields() != null ? municipality.getLocalExtensionFields().split(",") : new String[]{};
-			
+
 			for (String extension : localExtensionFields) {
 				switch (extension) {
 				case "SuppId":
@@ -256,6 +301,11 @@ public class EmployeeConverter {
 				case "Level2Text":
 					if (emp.getInvoiceLevel2Text() != null && StringUtils.hasLength(emp.getInvoiceLevel2Text())) {
 						localExtensions.put("Level2Text", emp.getInvoiceLevel2Text());
+					}
+					break;
+				case "SuperiorLevel":
+					if (emp.getSuperiorLevel() != null) {
+						localExtensions.put("SuperiorLevel", String.valueOf(emp.getSuperiorLevel()));
 					}
 					break;
 				default:
@@ -289,12 +339,23 @@ public class EmployeeConverter {
 
 		return person;
 	}
-    
+
+	private void setAffiliationType(Affiliation affiliation, Municipality municipality) {
+		String terms = affiliation.getEmploymentTerms();
+
+		if (municipality.getExternalEmploymentTermsList() != null && Arrays.asList(municipality.getExternalEmploymentTermsList().split(",")).contains(terms)) {
+			affiliation.setAffiliationType("EXTERNAL");
+		}
+		else {
+			affiliation.setAffiliationType("EMPLOYEE");
+		}
+	}
+
 	private LocalDate toLocalDate(Date date) {
 		if (date == null) {
 			return null;
 		}
 
-	    return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+		return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 	}
 }

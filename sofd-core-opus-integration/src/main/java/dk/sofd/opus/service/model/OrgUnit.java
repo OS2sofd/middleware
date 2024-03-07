@@ -17,7 +17,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-@EqualsAndHashCode(exclude = {"uuid", "parent"})
+@EqualsAndHashCode(exclude = {"uuid", "parent","tags"})
 public class OrgUnit
 {
     // stripped down version of the payload, containing only the fields that OPUS is the master of,
@@ -39,6 +39,7 @@ public class OrgUnit
     private Long orgTypeId;
     private Set<Post> postAddresses;
 	private Set<Phone> phones;
+    private Set<OrgUnitTag> tags;
 
 	/* we do not currently use localExtensions, so we ignore it, so as to not overwrite when patching
 	@JsonSerialize(using = LocalExtensionsSerializer.class)

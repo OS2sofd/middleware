@@ -5,7 +5,6 @@ import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import dk.sofd.opus.service.model.enums.AffiliationFunction;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -43,7 +42,7 @@ public class Affiliation {
     private String positionName;
     private String positionTypeId;
     private String positionTypeName;
-    private Set<AffiliationFunction> functions;
+    private Set<String> functions;
     private Set<String> managerForUuids;
     private Map<String, String> localExtensions;
 }

@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN skip_org_units BOOL NOT NULL DEFAULT FALSE;

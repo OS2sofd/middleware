@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN external_employment_terms_list VARCHAR(1024) NULL;

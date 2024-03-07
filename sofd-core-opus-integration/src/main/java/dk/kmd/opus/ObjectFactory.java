@@ -55,6 +55,7 @@ public class ObjectFactory
     private final static QName _FirstName_QNAME = new QName("", "firstName");
     private final static QName _ParentOrgUnit_QNAME = new QName("", "parentOrgUnit");
     private final static QName _PayGradeText_QNAME = new QName("", "payGradeText");
+    private final static QName _PayGrade_QNAME = new QName("", "payGrade");
     private final static QName _PhoneNumber_QNAME = new QName("", "phoneNumber");
     private final static QName _Position_QNAME = new QName("", "position");
     private final static QName _ShortName_QNAME = new QName("", "shortName");
@@ -326,6 +327,15 @@ public class ObjectFactory
     public JAXBElement<String> createParentOrgUnit(String value)
     {
         return new JAXBElement<String>(_ParentOrgUnit_QNAME, String.class, null, value);
+    }
+
+    /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link String }{@code >}}
+     */
+    @XmlElementDecl(namespace = "", name = "payGrade")
+    public JAXBElement<String> createPayGrade(String value)
+    {
+        return new JAXBElement<String>(_PayGrade_QNAME, String.class, null, value);
     }
 
     /**

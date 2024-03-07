@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN no_ou_phones BOOL NOT NULL DEFAULT FALSE;

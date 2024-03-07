@@ -59,6 +59,7 @@ import java.util.List;
  *         &lt;element name="orgUnit" type="{http://www.w3.org/2001/XMLSchema}int"/>
  *         &lt;element ref="{}email" minOccurs="0"/>
  *         &lt;element ref="{}userId" minOccurs="0"/>
+ *         &lt;element ref="{}payGrade"/>
  *         &lt;element ref="{}payGradeText"/>
  *         &lt;element ref="{}numerator"/>
  *         &lt;element ref="{}denominator"/>
@@ -109,6 +110,7 @@ import java.util.List;
 "orgUnit",
 "email",
 "userId",
+"payGrade",
 "payGradeText",
 "wageStep",
 "numerator",
@@ -153,6 +155,7 @@ public class Employee
     protected Integer orgUnit;
     protected String email;
     protected String userId;
+    protected String payGrade;
     protected String payGradeText;
     protected String wageStep;
     protected BigDecimal numerator;
@@ -822,6 +825,11 @@ public class Employee
         this.userId = value;
     }
 
+    public String getPayGrade()
+    {
+        return payGrade;
+    }
+
     /**
      * Gets the value of the payGradeText property.
      *
@@ -853,6 +861,11 @@ public class Employee
     public String getWageStep()
     {
         return wageStep;
+    }
+
+    public void setPayGrade(String value)
+    {
+        this.payGrade = value;
     }
 
     /**
