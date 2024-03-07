@@ -95,10 +95,15 @@ public class SF1601Service {
 			return Status.FAILED;
 		}
 		
-		boolean subscribed = getSubscriptionStatus(cpr, postforespoergAccessToken, cvr);
-		if (!subscribed) {
-			log.info("Could not send message to cpr=" + maskCpr(cpr) + " for cvr=" + cvr + " because person not subscribed");
-			return Status.NOT_REGISTERED;
+		switch (getSubscriptionStatus(cpr, postforespoergAccessToken, cvr)) {
+			case NOT_SUBSCRIBED:
+				log.info("Could not send message to cpr=" + maskCpr(cpr) + " for cvr=" + cvr + " because person not subscribed");
+				return Status.NOT_REGISTERED;	
+			case TECHNICAL_ISSUE:
+				log.warn("Failed to check subscription status for cpr=" + maskCpr(cpr) + " for cvr=" + cvr + ", attempting to send anyway");
+				break;
+			case SUBSCRIBED:
+				break;
 		}
 		
 		String xml = getXml(cpr, cvr, municipalityName, subject, content, attachments);
@@ -328,8 +333,9 @@ public class SF1601Service {
 		return accessToken;
 	}
 	
+	public enum SubscriptionStatus { SUBSCRIBED, NOT_SUBSCRIBED, TECHNICAL_ISSUE }
 	record SubscriptionResponse(boolean result) {}
-	public boolean getSubscriptionStatus(String cpr, String accessToken, String cvr) {
+	public SubscriptionStatus getSubscriptionStatus(String cpr, String accessToken, String cvr) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Content-Type", "application/json");
 		headers.add(HttpHeaders.AUTHORIZATION, "Holder-of-key " + accessToken);
@@ -344,14 +350,14 @@ public class SF1601Service {
 			ResponseEntity<SubscriptionResponse> response = restTemplate.exchange(url, HttpMethod.GET, request, SubscriptionResponse.class);
 
 			if (response.getStatusCodeValue() == 200) {
-				return response.getBody().result();
+				return (response.getBody().result() ? SubscriptionStatus.SUBSCRIBED : SubscriptionStatus.NOT_SUBSCRIBED);
 			}
 		}
 		catch (Exception ex) {
 			log.error("Failed to get subscription status for cpr=" + maskCpr(cpr) + " for cvr=" + cvr, ex);
 		}
 		
-		return false;
+		return SubscriptionStatus.TECHNICAL_ISSUE;
 	}
 	
 	record SendPostResponse() {}

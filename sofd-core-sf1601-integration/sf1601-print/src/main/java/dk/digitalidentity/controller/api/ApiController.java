@@ -25,15 +25,14 @@ public class ApiController {
 	public ResponseEntity<?> updateIntegration(@RequestBody LetterDTO letterDTO) {
 		Status status = ngdpService.sendLetter(letterDTO.cpr, letterDTO.cvr, letterDTO.municipalityName, letterDTO.subject, letterDTO.content, letterDTO.attachments);
 
-	    HttpHeaders responseHeaders = new HttpHeaders();
-	    responseHeaders.setContentType(MediaType.TEXT_PLAIN);
+		HttpHeaders responseHeaders = new HttpHeaders();
+		responseHeaders.setContentType(MediaType.TEXT_PLAIN);
 
 		if (status.equals(Status.OK)) {
 			return new ResponseEntity<>(HttpStatus.OK);
 		}
-		
-		if (status.equals(Status.NOT_REGISTERED)) {
-			return new ResponseEntity<>("Ikke tilmeldt e-boks!", responseHeaders, HttpStatus.BAD_REQUEST);
+		else if (status.equals(Status.NOT_REGISTERED)) {
+			return new ResponseEntity<>("Ikke tilmeldt e-boks!", responseHeaders, HttpStatus.CONFLICT);
 		}
 
 		return new ResponseEntity<>("Besked kunne ikke sendes", responseHeaders, HttpStatus.BAD_REQUEST);
