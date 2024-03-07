@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.EnableCaching;
@@ -16,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dk.sofd.organization.ad.security.MunicipalityHolder;
 import dk.sofd.organization.ad.service.model.OrgUnit;
@@ -32,6 +35,9 @@ public class SOFDOrganizationService {
 
     @Autowired
     private RestTemplate restTemplate;
+
+	@Autowired
+	ObjectMapper objectMapper;
 
 	public void postPhoto(String personUuid, byte[] photo) {
 		log.info(MunicipalityHolder.get().getName() + ": Posting photo for person with uuid={}", personUuid);
@@ -120,18 +126,25 @@ public class SOFDOrganizationService {
 		HttpEntity<String> request = new HttpEntity<>(getHeaders());
 		String url = getUrl();
 		String query = "/v2/persons/byCpr/" + cpr;
-		
+
 		try {
-			ResponseEntity<Person> response = restTemplate.exchange(url + query, HttpMethod.GET, request, Person.class);
-			
-			return Collections.singletonList(response.getBody());
+			var response = restTemplate.exchange(url + query, HttpMethod.GET, request, String.class);
+			var responseBody = response.getBody();
+			if (!response.getStatusCode().equals(HttpStatus.OK)) {
+				throw new Exception("Failed to fetch Person by cpr. " + response.getStatusCodeValue() + ", response=" + responseBody);
+			}
+			try {
+				var person = objectMapper.readValue(responseBody, Person.class);
+				return Collections.singletonList(person);
+			} catch (JsonProcessingException e) {
+				throw new Exception("Failed to map response to Person, response=" + responseBody, e);
+			}
 		}
 		catch (HttpStatusCodeException ex) {
 			if (ex.getRawStatusCode() != 404) {
 				throw new Exception("Failed to fetch person. " + ex.getRawStatusCode());
 			}
 		}
-
 		return new ArrayList<Person>();
     }
 
@@ -146,6 +159,9 @@ public class SOFDOrganizationService {
 			return response.getBody();
         }
         catch (HttpStatusCodeException ex) {
+        	ObjectMapper mapper = new ObjectMapper();
+        	String payload = mapper.writeValueAsString(person);
+        	log.warn("Failed payload: " + payload);
         	log.error("Failed to create Person " + person.getFirstname() + " " + person.getSurname() + ". " + ex.getRawStatusCode() + ". " + ex.getResponseBodyAsString());
         }
 		
@@ -165,12 +181,10 @@ public class SOFDOrganizationService {
 			restTemplate.exchange(getUrl() + "/user/deleteUserByADMasterId/" + masterId, HttpMethod.DELETE, request, String.class);
 		}
 		catch (HttpStatusCodeException ex) {
-			if( ex.getStatusCode() == HttpStatus.NOT_FOUND)
-			{
+			if( ex.getStatusCode() == HttpStatus.NOT_FOUND) {
 				log.info(MunicipalityHolder.get().getName() + ": Could not delete user with master_id " + masterId + " because SOFD version does not support this operation");
 			}
-			else
-			{
+			else {
 				log.error(MunicipalityHolder.get().getName() + ": Failed to delete user with master_id " + masterId + ", response=" + ex.getResponseBodyAsString());
 			}
 		}
@@ -195,6 +209,7 @@ public class SOFDOrganizationService {
         headers.add("Content-Type", "application/json");
         headers.add("ClientVersion", MunicipalityHolder.get().getClientVersion());
         headers.add("TlsVersion", MunicipalityHolder.get().getTlsVersion());
+		headers.add("Accept", "application/json");
 
         return headers;
     }

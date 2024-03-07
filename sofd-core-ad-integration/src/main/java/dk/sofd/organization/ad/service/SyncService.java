@@ -88,9 +88,10 @@ public class SyncService {
 			}
 
 			for (ADUser adUser : adUsers) {
-				if( adUser.isDeleted() ) {
+				if (adUser.isDeleted()) {
 					sofdOrganizationService.deleteUserByADMasterId(adUser.getObjectGuid());
 				}
+
 				// only perform synchronization if we can map user to a person by cpr
 				else if (adUser.hasValidCprAttribute()) {
 					if (municipality.isAzureLookupEnabled()) {
@@ -223,10 +224,10 @@ public class SyncService {
 			users.add(user);
 
 			// from the REAL active directory, we also accept exchange addresses
-			if (municipality.getUserType().equals("ACTIVE_DIRECTORY")) {
+			if (municipality.isCreateEmailEnabled()) {
 				// if the AD user has an email address, we also create an Exchange user account
 				if (adUser.getEmail() != null) {
-					users.add(inflateExchangeUserFromAdUser(user, adUser));
+					users.add(inflateExchangeUserFromAdUser(user, adUser, municipality));
 				}
 			}
 		}
@@ -240,14 +241,14 @@ public class SyncService {
 		}
 	}
 
-	private User inflateExchangeUserFromAdUser(User user, ADUser adUser) {
+	private User inflateExchangeUserFromAdUser(User user, ADUser adUser, Municipality municipality) throws Exception {
 		User exchangeUser = new User();
 		exchangeUser.setUuid(UUID.randomUUID().toString());
 		exchangeUser.setMaster(adMasterIdentifier);
 		exchangeUser.setMasterId(user.getUserId());
 		exchangeUser.setUserId(adUser.getEmail());
-		exchangeUser.setUserType("EXCHANGE");
 		exchangeUser.setDisabled(adUser.getDisabled());
+		exchangeUser.setUserType(municipality.getEmailType());
 
 		return exchangeUser;
 	}
@@ -418,7 +419,7 @@ public class SyncService {
 		return null;
 	}
 
-	private void handleUsers(Municipality municipality, List<ADUser> adUsers, Person person, Person patchedPerson, boolean isFullSync) {
+	private void handleUsers(Municipality municipality, List<ADUser> adUsers, Person person, Person patchedPerson, boolean isFullSync) throws Exception {
 		ObjectCloner objectCloner = new ObjectCloner();
 		Set<User> sofdUsers = person.getUsers();
 		boolean hasUsersChanged = false;
@@ -435,20 +436,35 @@ public class SyncService {
 
 				Optional<User> matchingEmailUser = sofdUsers.stream()
 						.filter(u -> u.getMaster().equals(adMasterIdentifier) &&
-								     u.getUserType().equals("EXCHANGE") &&
+								     u.getUserType().equals(municipality.getEmailType()) &&
 								     u.getMasterId().equals(sofdUser.getUserId()))
 						.findFirst();
 
-				// email users are only for real active directory
-				User emailUser = null;
+				// note that is MITID_ERHVERV users comes from other sources (e.g. OS2faktor), then the master is different,
+				// so this only updates those from AD
+				Optional<User> matchingMitIDErhvervUser = sofdUsers.stream()
+						.filter(u -> u.getMaster().equals(adMasterIdentifier) &&
+								     u.getUserType().equals("MITID_ERHVERV") &&
+								     u.getMasterId().equals(sofdUser.getUserId()))
+						.findFirst();
+
+				// email users are only for real active directory (why?)
+				User emailUser = null, mitIdErhvervUser = null;
 				if (municipality.getUserType().equals("ACTIVE_DIRECTORY")) {
 					emailUser = matchingEmailUser.isPresent() ? matchingEmailUser.get() : null;
 				}
 
+				mitIdErhvervUser = matchingMitIDErhvervUser.isPresent() ? matchingMitIDErhvervUser.get() : null;
+
 				if (!adUser.shouldSynchronizeUser(municipality.isSupportInactiveUsers())) {
 					sofdUsers.remove(sofdUser);
+					
 					if (emailUser != null) {
 						sofdUsers.remove(emailUser);
+					}
+
+					if (mitIdErhvervUser != null) {
+						sofdUsers.remove(mitIdErhvervUser);
 					}
 
 					hasUsersChanged = true;
@@ -462,7 +478,7 @@ public class SyncService {
 					}
 
 					// update/create derived EXCHANGE user as well (for real AD only)
-					if (municipality.getUserType().equals("ACTIVE_DIRECTORY")) {
+					if (municipality.isCreateEmailEnabled()) {
 						if (adUser.getEmail() != null) {
 							if (emailUser != null) {
 								if (!Objects.equals(emailUser.getUserId(), adUser.getEmail()) ||
@@ -474,7 +490,7 @@ public class SyncService {
 								}
 							}
 							else {
-								sofdUsers.add(inflateExchangeUserFromAdUser(sofdUser, adUser));
+								sofdUsers.add(inflateExchangeUserFromAdUser(sofdUser, adUser, municipality));
 
 								hasUsersChanged = true;
 							}
@@ -487,10 +503,48 @@ public class SyncService {
 							}
 						}
 					}
+					
+					// MitID Erhverv updates
+					if (StringUtils.hasLength(adUser.getMitIDUUID())) {
+						if (mitIdErhvervUser != null) {
+							if (!Objects.equals(mitIdErhvervUser.getUserId(), adUser.getMitIDUUID()) ||
+								!Objects.equals(mitIdErhvervUser.getDisabled(), adUser.getDisabled())) {
+								mitIdErhvervUser.setUserId(adUser.getMitIDUUID());
+								mitIdErhvervUser.setDisabled(adUser.getDisabled());
+
+								hasUsersChanged = true;
+							}
+						}
+						else {
+							sofdUsers.add(inflateMitIDErhvervUserFromAdUser(municipality, adUser));
+
+							hasUsersChanged = true;
+						}
+					}
+					else {
+						if (mitIdErhvervUser != null) {
+							sofdUsers.remove(mitIdErhvervUser);
+
+							hasUsersChanged = true;
+						}
+					}
 				}
 			}
 			else if (adUser.shouldSynchronizeUser(municipality.isSupportInactiveUsers())) {
 
+				// special case - they might have deleted the existing AD user, and then created it again (same UserId),
+				// in which case we get a new MasterID, but it is actually the same user
+				Optional<User> matchingSofdUserWithNewMasterId = sofdUsers.stream()
+						.filter(u -> u.getMaster().equals(adMasterIdentifier) &&
+								     u.getUserId().equals(adUser.getUserId()) &&
+								     u.getUserType().equals(municipality.getUserType()))
+						.findFirst();
+
+				// remove the old user with same userId from this person (but who has a new masterId)
+				if (matchingSofdUserWithNewMasterId.isPresent()) {
+					sofdUsers.remove(matchingSofdUserWithNewMasterId.get());
+				}
+				
 				// no corresponding user was found. We should add one
 				User user = new User();
 				user.setUuid(UUID.randomUUID().toString());
@@ -498,8 +552,12 @@ public class SyncService {
 
 				sofdUsers.add(user);
 
-				if (municipality.getUserType().equals("ACTIVE_DIRECTORY") && adUser.getEmail() != null) {
-					sofdUsers.add(inflateExchangeUserFromAdUser(user, adUser));
+				if (municipality.isCreateEmailEnabled() && adUser.getEmail() != null) {
+					sofdUsers.add(inflateExchangeUserFromAdUser(user, adUser, municipality));
+				}
+
+				if (StringUtils.hasLength(adUser.getMitIDUUID())) {
+					sofdUsers.add(inflateMitIDErhvervUserFromAdUser(municipality, adUser));
 				}
 
 				hasUsersChanged = true;
@@ -515,15 +573,19 @@ public class SyncService {
 							&& adUsers.stream().noneMatch(adUser -> (municipality.getMasterIdPrefix() + adUser.getObjectGuid()).equals(sofdUser.getMasterId())))
 					.collect(Collectors.toList());
 
-			// filter any EXCHANGE users created by this master that are no longer present
-			List<User> oldExchangeUsersInSofd = new ArrayList<User>();
-			if (municipality.getUserType().equals("ACTIVE_DIRECTORY")) {
-				oldExchangeUsersInSofd = sofdUsers.stream()
-						.filter(sofdUser -> sofdUser.getMaster().equals(adMasterIdentifier)
-								&& sofdUser.getUserType().equals("EXCHANGE")
-								&& adUsers.stream().noneMatch(adUser -> adUser.getUserId().equals(sofdUser.getMasterId())))
-						.collect(Collectors.toList());
-			}
+			// filter any email users created by this master that are no longer present
+			List<User> oldExchangeUsersInSofd = sofdUsers.stream()
+					.filter(sofdUser -> sofdUser.getMaster().equals(adMasterIdentifier)
+							&& sofdUser.getUserType().equals(municipality.getEmailType())
+							&& adUsers.stream().noneMatch(adUser -> adUser.getUserId().equals(sofdUser.getMasterId())))
+					.collect(Collectors.toList());
+			
+			// filter any mitIDErhverv users created by this master that are no longer present
+			List<User> oldMitIDErhvervUsersInSofd = sofdUsers.stream()
+					.filter(sofdUser -> sofdUser.getMaster().equals(adMasterIdentifier)
+							&& sofdUser.getUserType().equals("MITID_ERHVERV")
+							&& adUsers.stream().noneMatch(adUser -> adUser.getUserId().equals(sofdUser.getMasterId())))
+					.collect(Collectors.toList());
 
 			// delete old ACTIVE_DIRECTORY accounts
 			for (User oldADUserInSofd : oldADUsersInSofd) {
@@ -531,9 +593,15 @@ public class SyncService {
 				hasUsersChanged = true;
 			}
 
-			// delete old EXCHANGE accounts
+			// delete old email accounts
 			for (User oldExchangeUserInSofd : oldExchangeUsersInSofd) {
 				sofdUsers.remove(oldExchangeUserInSofd);
+				hasUsersChanged = true;
+			}
+			
+			// delete old mitid erhverv accounts
+			for (User oldMitIDErhvervUserInSofd : oldMitIDErhvervUsersInSofd) {
+				sofdUsers.remove(oldMitIDErhvervUserInSofd);
 				hasUsersChanged = true;
 			}
 		}
@@ -620,6 +688,18 @@ public class SyncService {
 		}
 	}
 
+	private User inflateMitIDErhvervUserFromAdUser(Municipality municipality, ADUser adUser) {
+		User user = new User();
+		user.setUuid(UUID.randomUUID().toString());
+		user.setMaster(adMasterIdentifier);
+		user.setMasterId(adUser.getUserId());
+		user.setUserId(adUser.getMitIDUUID());
+		user.setDisabled(adUser.getDisabled());
+		user.setUserType("MITID_ERHVERV");
+
+		return user;
+	}
+	
 	private User inflateUserFromAdUser(Municipality municipality, User user, ADUser adUser) {
 		user.setUserType(municipality.getUserType());
 		user.setMaster(adMasterIdentifier);
@@ -646,9 +726,12 @@ public class SyncService {
 		if (StringUtils.hasLength(adUser.getAccountExpireDate())) {
 			user.setAccountExpireDate(adUser.getAccountExpireDate());
 		}
+		
+		user.setWhenCreated(adUser.getWhenCreated());
 
 		user.setEmployeeId(adUser.getEmployeeId());
 		user.setUpn(adUser.getUpn());
+		user.setTitle(adUser.getTitle());
 
 		return user;
 	}
@@ -683,13 +766,14 @@ public class SyncService {
 				if (user.getUserType().equalsIgnoreCase(municipality.getUserType())) {
 					patchUsers = true;
 				}
-				else if (user.getUserType().equals("EXCHANGE") && "ACTIVE_DIRECTORY".equals(municipality.getUserType())) {
-					// special case - if we have a Person in SOFD with an exchange account, but NO AD accounts,
-					// then we should always remove them - but only if the userType is "ACTIVE_DIRECTORY" for
-					// the municipality (*sigh* - we really need to get rid of that feature)
+				else if (user.getUserType().equals(municipality.getEmailType())) {
+					patchUsers = true;
+				}
+				else if (user.getUserType().equals("MITID_ERHVERV")) {
 					patchUsers = true;
 				}
 				else {
+					// should not really happen though....
 					nonADUsers.add(user);
 				}
 			}

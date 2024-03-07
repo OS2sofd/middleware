@@ -29,9 +29,11 @@ public class User {
     private String userType;
     private String passwordExpireDate; // actually a LocalDate on the other end, but we handle it as a String here for convenience
     private String accountExpireDate;  // actually a LocalDate on the other end, but we handle it as a String here for convenience
+    private String whenCreated;        // actually a LocalDate on the other end, but we handle it as a String here for convenience
     private boolean prime;
     private Boolean disabled;
     private Boolean passwordLocked;
     private Map<String, String> localExtensions;
     private String upn;
+    private String title;
 }

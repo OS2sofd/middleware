@@ -61,6 +61,17 @@ public class Municipality {
 	@Column
 	private String azureDomain;
 
+	@Column
+	private boolean createEmailEnabled;
+
 	private transient String clientVersion;
 	private transient String tlsVersion;
+	
+	public String getEmailType() {
+		if ("ACTIVE_DIRECTORY_SCHOOL".equals(userType)) {
+			return "SCHOOL_EMAIL";
+		}
+		
+		return "EXCHANGE";
+	}
 }

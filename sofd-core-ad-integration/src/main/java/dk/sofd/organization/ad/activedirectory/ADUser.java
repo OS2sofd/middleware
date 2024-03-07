@@ -27,12 +27,14 @@ public class ADUser implements Comparable<ADUser> {
 	private String objectGuid;
 	private Long daysToPwdChange; // allow NULL values
 	private String accountExpireDate; // map NULL to 9999-12-31
+	private String whenCreated;
 	private boolean deleted;
 	private Boolean disabled;
 	private boolean passwordLocked;
 	private Map<String, String> localExtensions;
 	private byte[] photo;
 	private String upn;
+	private String mitIDUUID;
 
 	public boolean shouldSynchronizeUser(boolean supportInactiveUsers) {
 		if (supportInactiveUsers) {

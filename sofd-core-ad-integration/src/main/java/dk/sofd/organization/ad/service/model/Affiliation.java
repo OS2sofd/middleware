@@ -28,5 +28,4 @@ public class Affiliation {
 	private String orgUnitUuid;
 	private String affiliationType;
 	private String positionName;
-	private String localExtensions;
 }
