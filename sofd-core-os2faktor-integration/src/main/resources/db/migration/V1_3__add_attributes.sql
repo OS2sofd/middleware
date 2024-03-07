@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN attributes TEXT NULL;

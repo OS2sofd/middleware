@@ -36,7 +36,7 @@ public class Municipality {
 
 	@Column
 	private String sofdUrl;
-	
+
 	@Column
 	private String sofdApiKey;
 
@@ -54,5 +54,11 @@ public class Municipality {
 
 	@Column
 	private String roleCatalogTransferToNemloginRoleId;
+
+	@Column
+	private String attributes;
+	
+	@Column
+	private boolean writebackToSofd;
 
 }

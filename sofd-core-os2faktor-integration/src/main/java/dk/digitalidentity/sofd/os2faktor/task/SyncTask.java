@@ -21,7 +21,7 @@ public class SyncTask {
 	@Autowired
 	private IntegrationService integrationService;
 
-	@Scheduled(cron = "${integration.cron:30 5/15 * * * ?}")
+	@Scheduled(cron = "${integration.cron:30 5/15 6-20 * * ?}")
 	public void fullSync() {
 		for (Municipality municipality : municipalityService.findAll()) {
 			try {

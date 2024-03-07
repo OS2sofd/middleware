@@ -16,7 +16,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dk.digitalidentity.sofd.os2faktor.dao.model.Municipality;
+import dk.digitalidentity.sofd.os2faktor.service.os2faktor.CoreDataNemLoginStatus;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class SofdCoreService {
 
@@ -28,7 +31,8 @@ public class SofdCoreService {
 		if (!url.endsWith("/")) {
 			url += "/";
 		}
-		url += "api/sync/adgrid/persons";
+		
+		url += "api/sync/adgrid/allad";
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("apiKey", municipality.getSofdApiKey());
@@ -46,6 +50,29 @@ public class SofdCoreService {
 		}
 		catch (JsonProcessingException ex) {
 			throw new RuntimeException("Failed to deserialize SOFD Core response for " + municipality.getName(), ex);
+		}
+	}
+
+	public void loadNemLoginStatus(Municipality municipality, CoreDataNemLoginStatus status) {
+		String url = municipality.getSofdUrl();
+		if (!url.endsWith("/")) {
+			url += "/";
+		}
+		
+		url += "api/nemlogin";
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("apiKey", municipality.getSofdApiKey());
+		headers.add("Content-Type", "application/json");
+
+		HttpEntity<CoreDataNemLoginStatus> request = new HttpEntity<>(status, headers);
+
+		ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+		if (response.getStatusCodeValue() == 404) {
+			log.warn("Failed to set nemlogin status in SOFD Core for " + municipality.getName() + ", no endpoint!");			
+		}
+		else if (response.getStatusCodeValue() != 200) {
+			log.error("Failed to set nemlogin status in SOFD Core for " + municipality.getName() + ", body = " + response.getBody());
 		}
 	}
 }

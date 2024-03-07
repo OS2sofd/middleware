@@ -19,7 +19,7 @@ public class RoleCatalogueService {
 	@Autowired
 	private RestTemplate restTemplate;
 
-	public List<RcUser> getUsersWithRoleWithRoleId(Municipality municipality, String roleId) {
+	public List<RcUser> getUsersWithRoleWithRoleId(Municipality municipality, String roleId) throws Exception {
 		String url = municipality.getRoleCatalogUrl();
 		if (!url.endsWith("/")) {
 			url += "/";
@@ -33,6 +33,9 @@ public class RoleCatalogueService {
 		HttpEntity<RoleWrapperDTO> request = new HttpEntity<>(headers);
 
 		ResponseEntity<RoleWrapperDTO> response = restTemplate.exchange(url, HttpMethod.GET, request, new ParameterizedTypeReference<RoleWrapperDTO>() { });
+		if (response.getStatusCodeValue() != 200) {
+			throw new Exception(municipality.getName() + ": Could not call OS2rollekatalog - http " + response.getStatusCodeValue());
+		}
 
 		return response.getBody().getAssignments();
 	}

@@ -13,11 +13,11 @@ public class CoreDataEntry {
 	private String cpr;
 	private String name;
 	private String email;
-	//separate Entry per ad account
 	private String samAccountName;
 	private boolean nsisAllowed;
 	private boolean transferToNemlogin;
 	private Map<String, String> attributes;
+	private String department;
 
 	public CoreDataEntry() {
 		this.attributes = new HashMap<>();

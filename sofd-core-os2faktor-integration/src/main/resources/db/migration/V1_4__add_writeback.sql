@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN writeback_to_sofd BOOLEAN NOT NULL DEFAULT 0;
