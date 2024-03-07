@@ -18,4 +18,5 @@ public class StilPerson {
 	private String institutionNumber;
 	private String occupation;
 	private String roles;
+	private String groups;
 }

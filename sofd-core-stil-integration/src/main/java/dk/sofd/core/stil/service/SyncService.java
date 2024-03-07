@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import javax.transaction.Transactional;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,8 +39,7 @@ public class SyncService {
 		for (Municipality municipality : municipalityService.findAll()) {
 			if (municipality.isEnabled()) {
 				syncMunicipality(municipality);
-			}
-			else {
+			} else {
 				log.warn("Skipping municipality " + municipality.getName() + " because it is not enabled");
 			}
 
@@ -69,9 +69,9 @@ public class SyncService {
 
 						// ignore users that we already got from other institutions
 						if (stilPersons.stream().filter(p -> p.getUniLogin().equals(person.getUNILogin().getUserId())).count() == 0) {
-							stilPersons.add(map(person, institution.getInstitutionName(), institution.getInstitutionNumber(), municipality.getEmailSuffix()));
-						}
-						else {
+							var groupPatterns = municipality.getGroupPatterns().stream().map(Pattern::compile).collect(Collectors.toList());
+							stilPersons.add(map(person, institution.getInstitutionName(), institution.getInstitutionNumber(), municipality.getEmailSuffix(), groupPatterns));
+						} else {
 							log.debug("Skipping duplicate user: " + person.getUNILogin().getUserId() + " for " + municipality.getName());
 						}
 					}
@@ -84,13 +84,12 @@ public class SyncService {
 			}
 
 			fullSync(stilPersons, sofdPersons, municipality);
-		}
-		catch (Exception ex) {
+		} catch (Exception ex) {
 			log.error("Synchronization failed for " + municipality.getName(), ex);
 		}
 	}
 
-	private StilPerson map(InstitutionPersonFullMyndighed person, String institutionName, String institutionNumber, String emailSuffix) {
+	private StilPerson map(InstitutionPersonFullMyndighed person, String institutionName, String institutionNumber, String emailSuffix, List<Pattern> groupPatterns) {
 		try {
 			StilPerson stilPerson = new StilPerson();
 
@@ -111,15 +110,13 @@ public class SyncService {
 						stilPerson.setPostalCode(Long.parseLong(person.getPerson().getAddress().getPostalCode()));
 					}
 				}
-			}
-			else {
+			} else {
 				String name = person.getUNILogin().getName();
 				int idx = name.lastIndexOf(' ');
 				if (idx > 0 && idx < (name.length() - 1)) {
 					stilPerson.setFirstname(name.substring(0, idx));
 					stilPerson.setSurname(name.substring(idx + 1));
-				}
-				else {
+				} else {
 					stilPerson.setFirstname(name);
 					stilPerson.setSurname("");
 				}
@@ -127,16 +124,20 @@ public class SyncService {
 
 			if (person.getEmployee() != null) {
 				stilPerson.setOccupation(person.getEmployee().getOccupation());
-				if( person.getEmployee().getRole() != null)
-				{
+				if( person.getEmployee().getRole() != null) {
 					var roles = person.getEmployee().getRole().stream().map(r -> r.value()).collect(Collectors.joining(","));
 					stilPerson.setRoles(roles);
 				}
+
+				if( person.getEmployee().getGroupId() != null) {
+					var groups = person.getEmployee().getGroupId().stream().filter(g -> groupPatterns.stream().anyMatch(gp -> gp.matcher(g).matches()) ).collect(Collectors.joining(","));
+					stilPerson.setGroups(groups);
+				}
+
 			}
 
 			return stilPerson;
-		}
-		catch (Exception ex) {
+		} catch (Exception ex) {
 			log.warn("Failed on : " + person.getUNILogin().getUserId());
 			throw ex;
 		}
@@ -234,7 +235,7 @@ public class SyncService {
 				.collect(Collectors.toList());
 
 		List<User> mailUsers = users.stream()
-				.filter(u -> u.getMaster().equalsIgnoreCase(stilMasterIdentifier) && u.getUserType().equals("EXCHANGE"))
+				.filter(u -> u.getMaster().equalsIgnoreCase(stilMasterIdentifier) && u.getUserType().equals("SCHOOL_EMAIL"))
 				.collect(Collectors.toList());
 
 		String sofdUserUuid = null;
@@ -254,8 +255,7 @@ public class SyncService {
 
 					patchedPerson.setUsers(users);
 				}
-			}
-			else {
+			} else {
 				// found another user created by this master. We don't allow
 				// multiple STIL users per person so we should delete it
 				users.remove(user);
@@ -279,8 +279,7 @@ public class SyncService {
 			}
 
 			shouldUpdate = true;
-		}
-		else {
+		} else {
 			if (municipality.isEnableEmail()) {
 				boolean foundExistingMailUser = false;
 
@@ -297,8 +296,7 @@ public class SyncService {
 							patchedPerson.setUsers(users);
 							shouldUpdate = true;
 						}
-					}
-					else {
+					} else {
 						// only one mail account is allowed from STIL, so remove it
 						users.remove(mailUser);
 
@@ -329,7 +327,7 @@ public class SyncService {
 		if (stilPerson.getEmail() != null && stilPerson.getEmail().length() > 0) {
 			User mailUser = new User();
 
-			mailUser.setUserType("EXCHANGE");
+			mailUser.setUserType("SCHOOL_EMAIL");
 			mailUser.setUuid(UUID.randomUUID().toString());
 			mailUser.setMaster(stilMasterIdentifier);
 			mailUser.setMasterId(userUuid);
@@ -359,10 +357,13 @@ public class SyncService {
 		if (stilPerson.getOccupation() != null) {
 			extensions.put("occupation", stilPerson.getOccupation());
 		}
-		if( stilPerson.getRoles() != null)
-		{
+		if( stilPerson.getRoles() != null) {
 			extensions.put("roles", stilPerson.getRoles());
 		}
+		if( stilPerson.getGroups() != null) {
+			extensions.put("groups", stilPerson.getGroups());
+		}
+
 		user.setLocalExtensions(extensions);
 
 		return user;
@@ -378,8 +379,7 @@ public class SyncService {
 		for (User user : person.getUsers()) {
 			if (user.getMaster().equalsIgnoreCase(stilMasterIdentifier)) {
 				shouldUpdate = true;
-			}
-			else {
+			} else {
 				nonSTILUsers.add(user);
 			}
 		}

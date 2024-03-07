@@ -1,19 +1,11 @@
 package dk.sofd.core.stil.dao.model;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import javax.persistence.CollectionTable;
-import javax.persistence.Column;
-import javax.persistence.ElementCollection;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-
 import lombok.Getter;
 import lombok.Setter;
+
+import javax.persistence.*;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -52,4 +44,9 @@ public class Municipality {
 
 	@Column
 	private boolean enabled;
+
+	@ElementCollection
+	@CollectionTable(name = "group_map", joinColumns = @JoinColumn(name = "municipality_id"))
+	@Column(name = "pattern")
+	private Set<String> groupPatterns = new HashSet<>();
 }
