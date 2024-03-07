@@ -36,5 +36,6 @@ namespace SofdCprIntegration.Controllers
         public ICollection<Child> Children { get; set; } = new List<Child>();
         public bool IsDead { get; set; }
         public bool Disenfranchised { get; set; }
+        public bool Gone { get ; set; }
     }
 }

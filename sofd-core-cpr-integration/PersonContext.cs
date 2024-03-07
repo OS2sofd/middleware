@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SofdCprIntegration.Controllers;
+using SofdCprIntegration.Model;
 
 namespace SofdCprIntegration
 {
@@ -7,6 +8,7 @@ namespace SofdCprIntegration
     {
         public DbSet<Person> Person { get; set; }
         public DbSet<LastSync> LastSync { get; set; }
+        public DbSet<BadState> BadState { get; set; }
 
         public PersonContext() {
             ; // used when running without a database connection
@@ -32,6 +34,12 @@ namespace SofdCprIntegration
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.LastSyncDate);
+            });
+
+            modelBuilder.Entity<BadState>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.Cpr }).IsUnique();
             });
         }
     }

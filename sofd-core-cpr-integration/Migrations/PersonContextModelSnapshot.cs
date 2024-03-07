@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SofdCprIntegration;
 
+#nullable disable
+
 namespace SofdCprIntegration.Migrations
 {
     [DbContext(typeof(PersonContext))]
@@ -14,7 +16,7 @@ namespace SofdCprIntegration.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "3.1.19")
+                .HasAnnotation("ProductVersion", "6.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             modelBuilder.Entity("SofdCprIntegration.Controllers.Child", b =>
@@ -24,8 +26,8 @@ namespace SofdCprIntegration.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("Cpr")
-                        .HasColumnType("varchar(10) CHARACTER SET utf8mb4")
-                        .HasMaxLength(10);
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
 
                     b.Property<long?>("ParentId")
                         .HasColumnType("bigint");
@@ -47,14 +49,14 @@ namespace SofdCprIntegration.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("City")
-                        .HasColumnType("longtext CHARACTER SET utf8mb4");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Country")
-                        .HasColumnType("longtext CHARACTER SET utf8mb4");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Cpr")
-                        .HasColumnType("varchar(10) CHARACTER SET utf8mb4")
-                        .HasMaxLength(10);
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
 
                     b.Property<DateTime>("Created")
                         .HasColumnType("datetime(6)");
@@ -63,7 +65,10 @@ namespace SofdCprIntegration.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Firstname")
-                        .HasColumnType("longtext CHARACTER SET utf8mb4");
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("Gone")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsDead")
                         .HasColumnType("tinyint(1)");
@@ -72,16 +77,16 @@ namespace SofdCprIntegration.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Lastname")
-                        .HasColumnType("longtext CHARACTER SET utf8mb4");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Localname")
-                        .HasColumnType("longtext CHARACTER SET utf8mb4");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("PostalCode")
-                        .HasColumnType("longtext CHARACTER SET utf8mb4");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Street")
-                        .HasColumnType("longtext CHARACTER SET utf8mb4");
+                        .HasColumnType("longtext");
 
                     b.HasKey("Id");
 
@@ -105,12 +110,49 @@ namespace SofdCprIntegration.Migrations
                     b.ToTable("LastSync");
                 });
 
+            modelBuilder.Entity("SofdCprIntegration.Model.BadState", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Cpr")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<bool>("Disenfranchised")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Gone")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDead")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("Tts")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Cpr")
+                        .IsUnique();
+
+                    b.ToTable("BadState");
+                });
+
             modelBuilder.Entity("SofdCprIntegration.Controllers.Child", b =>
                 {
                     b.HasOne("SofdCprIntegration.Controllers.Person", "Parent")
                         .WithMany("Children")
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("SofdCprIntegration.Controllers.Person", b =>
+                {
+                    b.Navigation("Children");
                 });
 #pragma warning restore 612, 618
         }

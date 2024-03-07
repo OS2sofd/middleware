@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PersonBaseDataExtendedService;
+using SofdCprIntegration.Model;
 
 namespace SofdCprIntegration.Controllers
 {
@@ -74,7 +75,7 @@ namespace SofdCprIntegration.Controllers
                     Person person = new Person();
 
                     var addressName = response.PersonLookupResponse1.persondata.navn.personadresseringsnavn;
-                    if (!String.IsNullOrWhiteSpace(addressName) && useAddressName)
+                    if (!string.IsNullOrWhiteSpace(addressName) && useAddressName)
                     {
                         var names = new Stack<string>(Regex.Split(addressName, @"\s+"));
                         person.Lastname = names.Pop();
@@ -99,7 +100,8 @@ namespace SofdCprIntegration.Controllers
                         person.City = response.PersonLookupResponse1.adresse.aktuelAdresse.postdistrikt;
                         person.Country = "Danmark";
                     }
-                    else if (response.PersonLookupResponse1.adresse?.udrejseoplysninger?.udlandsadresse1 != null) {
+                    else if (response.PersonLookupResponse1.adresse?.udrejseoplysninger?.udlandsadresse1 != null)
+                    {
                         person.Street = response.PersonLookupResponse1.adresse.udrejseoplysninger.udlandsadresse1;
                         person.Localname = null;
 
@@ -122,13 +124,58 @@ namespace SofdCprIntegration.Controllers
                         person.Country = response.PersonLookupResponse1.adresse.udrejseoplysninger.udlandsadresse3;
                     }
 
+                    person.AddressProtected = response.PersonLookupResponse1.persondata.adressebeskyttelse.beskyttetSpecified ? response.PersonLookupResponse1.persondata.adressebeskyttelse.beskyttet : false;
+                    person.Cpr = cpr;
+                    person.LastUsed = DateTime.Now;
+                    person.Created = DateTime.Now;
                     person.IsDead = false;
+                    person.Gone = false;
+
+                    // create potential BadState
+                    bool badStateAdded = false;
+                    BadState badState = personContext.BadState.Where(p => p.Cpr.Equals(cpr)).FirstOrDefault();
+                    if (badState == null)
+                    {
+                        badState = new BadState()
+                        {
+                            Cpr = person.Cpr,
+                            Disenfranchised = false,
+                            Gone = false,
+                            IsDead = false,
+                            Tts = DateTime.Now
+                        };
+                    }
+                    else
+                    {
+                        badStateAdded = true;
+                    }
+
                     if (response.PersonLookupResponse1.persondata?.status?.status != null)
                     {
-                        // 01,03,05,07 are all active
-                        // 20,30,50,60,70,80,90 are all inactive (dead, lost, cancelled, etc)
-                        if (response.PersonLookupResponse1.persondata.status.status > 10) {
+                        // 90 is "Død", 70 is "Bortkommet"
+                        if (90 == response.PersonLookupResponse1.persondata.status.status)
+                        {
                             person.IsDead = true;
+
+                            badState.IsDead = true;
+                            if (!badStateAdded)
+                            {
+                                personContext.BadState.Add(badState);
+                                badStateAdded = true;
+                            }
+                            personContext.SaveChanges();
+                        }
+                        else if (70 == response.PersonLookupResponse1.persondata.status.status)
+                        {
+                            person.Gone = true;
+
+                            badState.Gone = true;
+                            if (!badStateAdded)
+                            {
+                                personContext.BadState.Add(badState);
+                                badStateAdded = true;
+                            }
+                            personContext.SaveChanges();
                         }
                     }
 
@@ -136,12 +183,15 @@ namespace SofdCprIntegration.Controllers
                     if (response.PersonLookupResponse1.persondata?.umyndiggoerelse?.umyndiggjort == true)
                     {
                         person.Disenfranchised = true;
-                    }
 
-                    person.AddressProtected = response.PersonLookupResponse1.persondata.adressebeskyttelse.beskyttetSpecified ? response.PersonLookupResponse1.persondata.adressebeskyttelse.beskyttet : false;
-                    person.Cpr = cpr;
-                    person.LastUsed = DateTime.Now;
-                    person.Created = DateTime.Now;
+                        badState.Disenfranchised = true;
+                        if (!badStateAdded)
+                        {
+                            personContext.BadState.Add(badState);
+                            badStateAdded = true;
+                        }
+                        personContext.SaveChanges();
+                    }
 
                     // save to localdb
                     if (!string.IsNullOrEmpty(connectionString))
@@ -149,21 +199,21 @@ namespace SofdCprIntegration.Controllers
                         personContext.Person.Add(person);
                         personContext.SaveChanges();
 
-			            if (response.PersonLookupResponse1?.relationer?.barn != null)
-			            {
-	                        foreach (var c in response.PersonLookupResponse1.relationer.barn)
-                                {
-                                    Child child = new Child();
-                                    child.Cpr = c.personnummer;
-	                            child.Parent = person;
-                                    person.Children.Add(child);
-                                }
-			            }
+                        if (response.PersonLookupResponse1?.relationer?.barn != null)
+                        {
+                            foreach (var c in response.PersonLookupResponse1.relationer.barn)
+                            {
+                                Child child = new Child();
+                                child.Cpr = c.personnummer;
+                                child.Parent = person;
+                                person.Children.Add(child);
+                            }
+                        }
 
                         personContext.SaveChanges();
-                    }
 
-                    return person;
+                        return person;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -177,15 +227,13 @@ namespace SofdCprIntegration.Controllers
                     return BadRequest(ex.Message);
                 }
             }
-            else
-            {
-                log.Debug("Read from CPR cache");
 
-                localPerson.LastUsed = DateTime.Now;
-                personContext.SaveChanges();
+            log.Debug("Read from CPR cache");
 
-                return localPerson;
-            }
+            localPerson.LastUsed = DateTime.Now;
+            personContext.SaveChanges();
+
+            return localPerson;
         }
 
         private string Hide(string cpr)

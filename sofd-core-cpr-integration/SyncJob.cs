@@ -5,10 +5,13 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using SofdCprIntegration;
 using SofdCprIntegration.Controllers;
+using SofdCprIntegration.Model;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using static System.Net.WebRequestMethods;
 
 [DisallowConcurrentExecution]
 public class SyncJob : IJob
@@ -107,28 +110,75 @@ public class SyncJob : IJob
             if (files.Count > 0)
             {
                 List<string> updatedPersons = new List<string>();
+                List<string> badStatesAndCpr = new List<string>();
                 DateTime lastWriteTime = DateTime.Now; // overwritten below, so the value does not matter
                 foreach (var file in files)
                 {
                     // parse the file
                     updatedPersons.AddRange(ExtractCPR(file.Content));
+                    badStatesAndCpr.AddRange(ExtractBadStates(file.Content));
 
                     // the files are sorted in ascending order which means that the last file in the loop is the newest, so this will end up as the lastWriteTime
                     lastWriteTime = file.LastWriteTime;
                 }
 
-                log.Info("Files from CPR office contained " + updatedPersons.Count + " numbers with changes");
+                log.Info("Files from CPR office contained " + updatedPersons.Count + " rows with changes");
 
                 // update timestamp after reading from sftp
                 lastSync.LastSyncDate = lastWriteTime;
                 personContext.Update(lastSync);
 
+                List<Person> persons = personContext.Person.ToList();
+                List<BadState> previousBadStates = personContext.BadState.ToList();
+
+                log.Info("Files from CPR office contained " + badStatesAndCpr.Count + " rows with bad state changes");
+
+                // check if bad state is dead, gone or disenfranchised
+                foreach (var badState in badStatesAndCpr)
+                {
+                    // 012 død, 017 umyndiggjort, 001 status, hvor værdi 70 = forsvundet
+                    string stateCode = badState.Substring(0, 3);
+                    string cpr = badState.Substring(3, 10);
+
+                    BadState bs;
+
+                    if (persons.Any(p => string.Equals(p.Cpr, cpr)))
+                    {
+                        log.Info("Found bad state on " + cpr);
+
+                        if (previousBadStates.Any(s => s.Cpr == cpr))
+                        {
+                            bs = (BadState)previousBadStates.Select(s => s.Cpr == cpr);
+                            if (int.Parse(stateCode) == 017) { bs.Disenfranchised = true; }
+                            if (int.Parse(stateCode) == 001) { bs.Gone = true; }
+                            if (int.Parse(stateCode) == 012) { bs.IsDead = true; }
+                            personContext.BadState.Update(bs);
+                        }
+                        else
+                        {
+                            bs = new BadState()
+                            {
+                                Cpr = cpr,
+                                Tts = DateTime.Now,
+                                Disenfranchised = false,
+                                Gone = false,
+                                IsDead = false
+                            };
+                            if (int.Parse(stateCode) == 017) { bs.Disenfranchised = true; }
+                            if (int.Parse(stateCode) == 001) { bs.Gone = true; }
+                            if (int.Parse(stateCode) == 012) { bs.IsDead = true; }
+                            personContext.BadState.Add(bs);
+                        }
+                    }
+                }
+
                 // remove updated persons from cache-db
                 personContext.Person.RemoveRange(personContext.Person.Where(p => updatedPersons.Contains(p.Cpr)));
-
                 personContext.SaveChanges();
             }
         }
+
+        log.Info("Completed FTP Sync Job");
     }
 
     private List<string> ExtractCPR(string content)
@@ -138,5 +188,28 @@ public class SyncJob : IJob
                         .Select(l => l.Substring(3, 10)) // cut only the cpr
                         .Distinct() // remove duplicates
                         .ToList(); // return as list
+    }
+
+    private List<string> ExtractBadStates(string content)
+    {
+        List<string> strings = new List<string>();
+
+        using (StringReader sr = new StringReader(content))
+        {
+            while (sr.Peek() > -1)
+            {
+                var l = sr.ReadLine();
+                // 012 død, hvor plads 13 = D, 017 umyndiggjort, 001 status, hvor værdi 70 = forsvundet                 
+                var dog = l.Split(null);
+                if ((l.StartsWith("012") && l.Substring(13, 1) == "D") ||
+                     l.StartsWith("017") ||
+                    (l.StartsWith("001") && l.Split(null)[10].StartsWith("70")))
+                {
+                    strings.Add(l.Substring(0, 13));
+                }
+            }
+        }
+
+        return strings;
     }
 }
