@@ -15,6 +15,7 @@ namespace SOFDCore.ODataApi.Models
         public string UserType { get; set; }
         public bool Prime { get; set; }
         public string EmployeeId { get; set; }
+        public string KombitUuid { get; set; }
 
         [ForeignKey("Person")]
         public string PersonUuid { get; set; }

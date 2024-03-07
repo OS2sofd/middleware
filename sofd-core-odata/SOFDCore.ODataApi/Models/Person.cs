@@ -38,6 +38,7 @@
         public bool? TaxedPhone { get; set; }
         public bool? DisableAccountOrders { get; set; }
         public bool? ForceStop { get; set; }
+        public string CalculatedName { get { return !String.IsNullOrEmpty(this.ChosenName) ? this.ChosenName : this.Firstname + " " + this.Surname; } set { } }
         public Leave Leave { get; set; }
 
         public ICollection<User> Users { get; set; }
@@ -47,5 +48,7 @@
         public ICollection<SubstituteAssignment> Substitutes { get; set; }
         public Photo Photo { get; set; }
         public ICollection<PersonChild> Children { get; set; }
+        public ICollection<AuthorizationCode> AuthorizationCodes{ get; set; }
+
     }
 }

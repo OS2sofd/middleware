@@ -37,7 +37,12 @@ namespace SOFDCore.ODataApi.Models
         [ForeignKey("OrgUnit")]
         public string OrgunitUuid { get; set; }
         public OrgUnit OrgUnit { get; set; }
+
+        public string SourceOrgunitUuid { get; set; }
+        public string AlternativeOrgunitUuid { get; set; }
+
         public ICollection<AffiliationKLEPrimary> KLEPrimary { get; set; }
         public ICollection<AffiliationKLESecondary> KLESecondary { get; set; }
+        public ICollection<AffiliationFunction> Functions { get; set; }
     }
 }

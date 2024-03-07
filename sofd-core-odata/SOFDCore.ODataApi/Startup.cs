@@ -60,7 +60,7 @@ namespace SOFDCore.ODataApi
             services.AddMvc(options => {
                 options.EnableEndpointRouting = false;
                 options.Filters.Add(new AuthorizeFilter());
-                options.Filters.Add(new EnableQueryAttribute() { MaxExpansionDepth = Configuration.GetValue<int>("OData:MaxExpansionDepth") });
+                options.Filters.Add(new EnableQueryAttribute() { MaxExpansionDepth = Configuration.GetValue<int>("OData:MaxExpansionDepth"), MaxAnyAllExpressionDepth = 3 });
                 options.MaxIAsyncEnumerableBufferLimit = 50000;
             }).SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
             services.AddOData();

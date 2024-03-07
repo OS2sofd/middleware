@@ -31,6 +31,15 @@ namespace SOFDCore.ODataApi.Configuration
         private IEdmModel BuildEdmModel()
         {
             var modelBuilder = new ODataConventionModelBuilder();
+
+            modelBuilder.EntityType<FunctionAssignment>().Property(p => p.StartDate).AsDate();
+            modelBuilder.EntityType<FunctionAssignment>().Property(p => p.StopDate).AsDate();
+            
+            // TODO: some of the API consumers fail if we change these to date-only format
+            // Correct solution is to make this change and fix all API consumers
+            //modelBuilder.EntityType<Affiliation>().Property(p => p.StartDate).AsDate();
+            //modelBuilder.EntityType<Affiliation>().Property(p => p.StopDate).AsDate();
+
             var personConfig = modelBuilder.EntitySet<Person>("Persons").EntityType;
             // binary data is not exposed directy through odata - only by direct service method
             // this is to force users into using checksum/lastchanged to query photos
@@ -73,7 +82,6 @@ namespace SOFDCore.ODataApi.Configuration
                 if (!HasRoleClaim("ORGUNIT_ADDRESS")) 
                 {
                     orgUnitConfig.Ignore(o => o.Addresses);
-                    orgUnitConfig.Ignore(o => o.Emails);
                 }
                 if (!HasRoleClaim("ORGUNIT_PHONE"))
                 {

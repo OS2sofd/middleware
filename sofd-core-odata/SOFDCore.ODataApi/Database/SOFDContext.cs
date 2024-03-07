@@ -24,6 +24,8 @@ namespace SOFDCore.ODataApi.Database
             modelBuilder.SetUnderscoreColumnNameConvention();
 
             // modelBuilder.Entity<Person>().HasMany<SubstituteAssignment>().WithOne("Person");
+
+            modelBuilder.Entity<Person>().Ignore(p => p.CalculatedName);
         }
     }
 }

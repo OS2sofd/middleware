@@ -9,6 +9,7 @@ namespace SOFDCore.ODataApi.Models
         [Key]
         public int RefId { get; set; }
         public string Tag { get; set; }
+        public string Description { get; set; }
         public string CustomValue { get; set; }
 
         [ForeignKey("OrgUnit")]
