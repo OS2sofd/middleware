@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN sync_substitutes BOOLEAN DEFAULT FALSE;

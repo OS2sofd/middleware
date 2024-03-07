@@ -1,10 +1,10 @@
 package dk.sofd.organization.dao.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -42,5 +42,17 @@ public class Municipality {
 	
 	@Column
 	private boolean includeUniloginUsers;
+
+	@Column(name = "include_school_ad_users")
+	private boolean includeSchoolADUsers;
+
+	@Column
+	private String schoolDomain;
+
+	@Column
+	private boolean syncSubstitutes;
+	
+	@Column
+	private boolean includeNonAffiliationUsers;
 
 }

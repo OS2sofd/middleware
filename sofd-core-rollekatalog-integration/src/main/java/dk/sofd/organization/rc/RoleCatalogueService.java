@@ -20,12 +20,16 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import dk.sofd.organization.core.CoreService;
 import dk.sofd.organization.core.model.Affiliation;
 import dk.sofd.organization.core.model.OrgUnit;
 import dk.sofd.organization.core.model.Person;
 import dk.sofd.organization.core.model.SyncResult;
 import dk.sofd.organization.dao.model.Municipality;
+import dk.sofd.organization.exception.RoleCatalogueErrorResponseException;
+import dk.sofd.organization.exception.RoleCatalogueNotFoundException;
 import dk.sofd.organization.rc.model.ManagerDTO;
 import dk.sofd.organization.rc.model.OrgUnitDTO;
 import dk.sofd.organization.rc.model.OrganisationDTO;
@@ -46,6 +50,21 @@ public class RoleCatalogueService {
 	@Autowired
 	private RestTemplate restTemplate;
 
+	@Autowired
+	private ObjectMapper objectMapper;
+
+    public record ManagerRecord (
+        /*@Schema(description = "The name of the manager")*/ String name,
+        /*@Schema(description = "The userId of the manager")*/ String userId,
+        /*@Schema(description = "List of substitutes for this manager")*/ List<SubstituteRecord> substitutes
+    ) { }
+
+    public record SubstituteRecord (
+    	/*@Schema(description = "The name of the substitute")*/ String name,
+        /*@Schema(description = "The userId of the substitute")*/ String userId,
+        /*@Schema(description = "The uuid of the orgunit the substitute is substite for")*/ String orgUnitUuid
+    ) { }
+
 	@Async
 	public boolean performFullSync(Municipality municipality) {
 		log.info("Performing full sync for " + municipality.getName());
@@ -61,14 +80,38 @@ public class RoleCatalogueService {
 			OrgUnit[] orgUnits = coreService.getOrgUnits(municipality);
 			Person[] persons = coreService.getPersons(municipality);
 
-			List<UserDTO> userDTOs = toDTO(persons);
-			List<OrgUnitDTO> orgUnitDTOs = toDTO(orgUnits, persons);
+			// need to wrap it in ArrayList, otherwise it is immutable :(
+			List<Person> personsAsList = new ArrayList<Person>(Arrays.asList(persons));
+			
+			// we only deal with these on full-sync, as it would be to cumbersome to do delta on them (lazy Brian ;))
+			if (municipality.isIncludeNonAffiliationUsers()) {
+				Person[] extraPersons = coreService.getAllAD(municipality);
+				
+				for (Person extraPerson : extraPersons) {
+					boolean found = false;
+					
+					for (Person person : personsAsList) {
+						if (Objects.equals(person.getUserId(), extraPerson.getUserId())) {
+							found = true;
+							break;
+						}
+					}
+					
+					if (!found) {
+						personsAsList.add(extraPerson);
+					}
+				}
+			}
+			
+			List<UserDTO> userDTOs = toDTO(personsAsList);
+			List<OrgUnitDTO> orgUnitDTOs = toDTO(orgUnits, Arrays.stream(persons).toArray(Person[]::new));
 			OrganisationDTO dto = new OrganisationDTO();
 			dto.setOrgUnits(orgUnitDTOs);
 			dto.setUsers(userDTOs);
-			
+
 			makeFullSyncToRoleCatalogue(dto, municipality);
 
+			log.info("Finished full sync for " + municipality.getName());
 			return true;
 		}
 		catch (Exception ex) {
@@ -111,10 +154,11 @@ public class RoleCatalogueService {
 
 			// take only persons mentioned in the delta
 			Person[] filteredPersons = Stream.of(persons)
-					.filter(p -> delta.getUuids().stream().anyMatch(dp -> Objects.equals(dp.getUuid(), p.getUuid())))
+					// TODO: remove the "Objects.equals(dp.getUuid(), p.getUuid())"-part once all municipalities are running SOFD > 2023-06-02
+					.filter(p -> delta.getUuids().stream().anyMatch(dp -> Objects.equals(dp.getUuid(), p.getUuid()) || Objects.equals(dp.getUuid(), p.getPersonUuid()) ))
 					.toArray(Person[]::new);
 
-			List<UserDTO> userDTOs = toDTO(filteredPersons);
+			List<UserDTO> userDTOs = toDTO(Arrays.asList(filteredPersons));
 
 			makeDeltaSyncToRoleCatalogue(userDTOs, municipality);
 
@@ -170,14 +214,16 @@ public class RoleCatalogueService {
 		return result;
 	}
 
-	private List<UserDTO> toDTO(Person[] persons) {
+	private List<UserDTO> toDTO(List<Person> persons) {
 		List<UserDTO> result = new ArrayList<>();
 
 		for (Person person : persons) {
 			UserDTO dto = new UserDTO();
+			dto.setSchoolUser(person.isSchoolUser());
 			dto.setExtUuid(person.getUuid());
 			dto.setName(person.getName());
 			dto.setCpr(person.getCpr());
+			dto.setNemloginUuid(person.getNemloginUserUuid());
 			dto.setEmail(person.getEmail());
 			dto.setPhone(person.getPhone());
 			dto.setUserId(person.getUserId());
@@ -185,12 +231,16 @@ public class RoleCatalogueService {
 			dto.setDisabled(person.isDisabled());
 			dto.setPositions(new ArrayList<>());
 
-			for (Affiliation affiliation : person.getAffiliations()) {
-				PositionDTO position = new PositionDTO();
-				position.setName(affiliation.getPositionName());
-				position.setOrgUnitUuid(affiliation.getOrgUnitUuid());
-				
-				dto.getPositions().add(position);
+			if (person.getAffiliations() != null) {
+				for (Affiliation affiliation : person.getAffiliations()) {
+					PositionDTO position = new PositionDTO();
+					position.setName(affiliation.getPositionName());
+					position.setOrgUnitUuid(affiliation.getOrgUnitUuid());
+					// null-check that supports SOFD versions still not sending do not inherit on affiliations
+					// change once all SOFD instances have version >= 2022-12-05
+					position.setDoNotInherit(affiliation.getDoNotInherit() != null ? affiliation.getDoNotInherit() : person.isDoNotInherit());
+					dto.getPositions().add(position);
+				}
 			}
 			
 			dto.setKlePerforming(person.getKlePrimary());
@@ -215,7 +265,7 @@ public class RoleCatalogueService {
 
 			TitleDTO[] aTitles = titleGetResponse.getBody();
 			List<TitleDTO> titles = Arrays.asList(aTitles);
-		    Map<String, TitleDTO> mapOfTitles = titles.stream().collect(Collectors.toMap(TitleDTO::getName, t -> t));
+			Map<String, TitleDTO> mapOfTitles = titles.stream().collect(Collectors.toMap(TitleDTO::getName, t -> t));
 
 		    // keep track of any changes to the Titles payload
 			boolean changes = false;
@@ -279,17 +329,38 @@ public class RoleCatalogueService {
 		}
 		
 		// then load organisation
-		HttpEntity<OrganisationDTO> request = new HttpEntity<>(dto, getHeaders(municipality.getRoleCatalogApiKey()));
+		// First update primary domain (non-school)
+		var nonSchoolUsers =  dto.getUsers().stream().filter(u -> !u.isSchoolUser()).toList();
+		var schoolUsers = dto.getUsers().stream().filter(u -> u.isSchoolUser()).toList();
 
+		// first do the update to primary domain (non-school-domain)
+		dto.setUsers(nonSchoolUsers);
+		HttpEntity<OrganisationDTO> request = new HttpEntity<>(dto, getHeaders(municipality.getRoleCatalogApiKey()));
 		ResponseEntity<ResponseDTO> response = restTemplate.exchange(municipality.getRoleCatalogUrl() + "/organisation/v3", HttpMethod.POST, request, ResponseDTO.class);
 		if (!response.getStatusCode().equals(HttpStatus.OK)) {
-			throw new Exception("Failed to import to RoleCatalogue (" + municipality.getName() + "). " + response.getStatusCodeValue() + ", response=" + response.getBody());
+			throw new Exception("Failed to import to RoleCatalogue primary domain (" + municipality.getName() + "). " + response.getStatusCodeValue() + ", response=" + response.getBody());
 		}
-
 		ResponseDTO responseDTO = response.getBody();
 		if (responseDTO.containsChanges()) {
-			log.info("RoleCatalogue updated (" + municipality.getName() + "): " + responseDTO.toString());
+			log.info("RoleCatalogue primary domain updated (" + municipality.getName() + "): " + responseDTO.toString());
 		}
+
+		if( municipality.isIncludeSchoolADUsers() )
+		{
+			// then do the update to school domain
+			dto.setUsers(schoolUsers);
+			log.trace("School users full sync payload: " + objectMapper.writeValueAsString(dto));
+			request = new HttpEntity<>(dto, getHeaders(municipality.getRoleCatalogApiKey()));
+			response = restTemplate.exchange(municipality.getRoleCatalogUrl() + "/organisation/v3?domain=" + municipality.getSchoolDomain(), HttpMethod.POST, request, ResponseDTO.class);
+			if (!response.getStatusCode().equals(HttpStatus.OK)) {
+				throw new Exception("Failed to import to RoleCatalogue school domain (" + municipality.getName() + "). " + response.getStatusCodeValue() + ", response=" + response.getBody());
+			}
+			responseDTO = response.getBody();
+			if (responseDTO.containsChanges()) {
+				log.info("RoleCatalogue school domain updated (" + municipality.getName() + "): " + responseDTO.toString());
+			}
+		}
+
 	}
 
 	private void makeDeltaSyncToRoleCatalogue(List<UserDTO> users, Municipality municipality) throws Exception {
@@ -305,7 +376,7 @@ public class RoleCatalogueService {
 
 			TitleDTO[] aTitles = titleGetResponse.getBody();
 			List<TitleDTO> titles = Arrays.asList(aTitles);
-		    Map<String, TitleDTO> mapOfTitles = titles.stream().collect(Collectors.toMap(TitleDTO::getName, t -> t));
+			Map<String, TitleDTO> mapOfTitles = titles.stream().collect(Collectors.toMap(TitleDTO::getName, t -> t));
 
 			for (UserDTO userDTO : users) {
 				if (userDTO.getPositions() != null) {
@@ -320,17 +391,34 @@ public class RoleCatalogueService {
 		}
 		
 		// then load users to RoleCatalog
-		HttpEntity<List<UserDTO>> request = new HttpEntity<>(users, getHeaders(municipality.getRoleCatalogApiKey()));
+		// First update primary domain (non-school)
+		HttpEntity<List<UserDTO>> request = new HttpEntity<>(users.stream().filter(u -> !u.isSchoolUser()).toList(), getHeaders(municipality.getRoleCatalogApiKey()));
 
 		ResponseEntity<ResponseDTO> response = restTemplate.exchange(municipality.getRoleCatalogUrl() + "/organisation/v3/delta", HttpMethod.POST, request, ResponseDTO.class);
 		if (!response.getStatusCode().equals(HttpStatus.OK)) {
-			throw new Exception("Failed to delta import to RoleCatalogue (" + municipality.getName() + "). " + response.getStatusCodeValue() + ", response=" + response.getBody());
+			throw new Exception("Failed to delta import to RoleCatalogue primary domain (" + municipality.getName() + "). " + response.getStatusCodeValue() + ", response=" + response.getBody());
 		}
 
 		ResponseDTO responseDTO = response.getBody();
 		if (responseDTO.containsChanges()) {
-			log.info("RoleCatalogue delta updated (" + municipality.getName() + "): " + responseDTO.toString());
+			log.info("RoleCatalogue primary domain delta updated (" + municipality.getName() + "): " + responseDTO.toString());
 		}
+
+		// then do the update to school domain
+		if( municipality.isIncludeSchoolADUsers() ) {
+			request = new HttpEntity<>(users.stream().filter(u -> u.isSchoolUser()).toList(), getHeaders(municipality.getRoleCatalogApiKey()));
+
+			response = restTemplate.exchange(municipality.getRoleCatalogUrl() + "/organisation/v3/delta?domain=" + municipality.getSchoolDomain(), HttpMethod.POST, request, ResponseDTO.class);
+			if (!response.getStatusCode().equals(HttpStatus.OK)) {
+				throw new Exception("Failed to delta import to RoleCatalogue primary domain (" + municipality.getName() + "). " + response.getStatusCodeValue() + ", response=" + response.getBody());
+			}
+
+			responseDTO = response.getBody();
+			if (responseDTO.containsChanges()) {
+				log.info("RoleCatalogue primary domain delta updated (" + municipality.getName() + "): " + responseDTO.toString());
+			}
+		}
+
 	}
 	
 	private HttpHeaders getHeaders(String apiKey) {
@@ -340,5 +428,64 @@ public class RoleCatalogueService {
 		headers.add("Accept", "application/json");
 
 		return headers;
+	}
+
+	public List<ManagerRecord> getAllSubstitutes(Municipality municipality) throws Exception {
+		HttpEntity<?> managerSubstituteGetRequest = new HttpEntity<>(getHeaders(municipality.getRoleCatalogApiKey()));
+
+		ResponseEntity<String> testResponse = restTemplate.exchange(municipality.getRoleCatalogUrl() + "/manager", HttpMethod.GET, managerSubstituteGetRequest, String.class);
+		if (!testResponse.getStatusCode().equals(HttpStatus.OK)) {
+			throw new Exception("Failed to load managerSubstitutes from RoleCatalogue (" + municipality.getName() + "). " + testResponse.getStatusCodeValue() + ", response=" + testResponse.getBody());
+		}
+
+		if (log.isDebugEnabled()) {
+			log.debug("Response:\r\n" + testResponse.getBody());
+			log.debug(municipality.getRoleCatalogUrl() + "/manager");
+		}
+
+		ResponseEntity<ManagerRecord[]> managerSubstituteGetResponse = restTemplate.exchange(municipality.getRoleCatalogUrl() + "/manager", HttpMethod.GET, managerSubstituteGetRequest, ManagerRecord[].class);
+		if (!managerSubstituteGetResponse.getStatusCode().equals(HttpStatus.OK)) {
+			throw new Exception("Failed to load managerSubstitutes from RoleCatalogue (" + municipality.getName() + "). " + managerSubstituteGetResponse.getStatusCodeValue() + ", response=" + managerSubstituteGetResponse.getBody());
+		}
+		
+		if (log.isDebugEnabled()) {
+			log.debug("Response:\r\n" + new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(managerSubstituteGetResponse.getBody()));
+		}
+		
+		return Arrays.asList(managerSubstituteGetResponse.getBody());
+	}
+	
+	public void createSubstitute(Municipality municipality, ManagerRecord body) throws Exception {
+		HttpEntity<ManagerRecord> request = new HttpEntity<>(body, getHeaders(municipality.getRoleCatalogApiKey()));
+
+		if (log.isDebugEnabled()) {
+			log.debug("Request:\r\n" + new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(request));
+		}
+		
+		ResponseEntity<?> response = restTemplate.exchange(municipality.getRoleCatalogUrl() + "/manager", HttpMethod.POST, request, String.class);
+
+		if (response.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+			String payload = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(request);
+			
+			throw new RoleCatalogueNotFoundException("Got not found when trying to create substitute (" + municipality.getName() + "), payload=" + payload + ", response=" + response.getBody());
+		}
+		else if (response.getStatusCode().isError()) {
+			String payload = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(request);
+			
+			throw new RoleCatalogueErrorResponseException("Failed to create substitute (" + municipality.getName() + "). " + response.getStatusCodeValue() + ", payload=" + payload + ", response=" + response.getBody());
+		}
+	}
+	
+	public void deleteSubstitute(Municipality municipality, ManagerRecord body) throws Exception {
+		HttpEntity<ManagerRecord> request = new HttpEntity<>(body, getHeaders(municipality.getRoleCatalogApiKey()));
+
+		if (log.isDebugEnabled()) {
+			log.debug("Request:\r\n" + new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(request));
+		}
+		
+		ResponseEntity<?> response = restTemplate.exchange(municipality.getRoleCatalogUrl() + "/manager", HttpMethod.DELETE, request, String.class);
+		if (!response.getStatusCode().equals(HttpStatus.OK)) {
+			throw new Exception("Failed to delete substitute (" + municipality.getName() + "). " + response.getStatusCodeValue() + ", response=" + response.getBody());
+		}
 	}
 }

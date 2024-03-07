@@ -11,4 +11,5 @@ public class PositionDTO {
 	private String name;
 	private String orgUnitUuid;
 	private String titleUuid;
+	private boolean doNotInherit;
 }

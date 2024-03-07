@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN include_non_affiliation_users BOOLEAN DEFAULT FALSE;
