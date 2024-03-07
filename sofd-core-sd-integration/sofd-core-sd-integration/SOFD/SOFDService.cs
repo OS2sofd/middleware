@@ -8,16 +8,19 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using DigitalIdentity.Utility;
 using System.Net;
+using sofd_core_sd_integration.SOFD.Model;
 
 namespace DigitalIdentity.SOFD
 {
     class SOFDService : BaseClass<SOFDService>
     {
         private readonly Uri baseUri;
-        private static readonly HttpClient httpClient = new HttpClient();
+        private readonly HttpClient httpClient;
         public SOFDService(IServiceProvider sp) : base(sp) {
             baseUri = new Uri(appSettings.SOFDSettings.BaseUrl);
-            httpClient.DefaultRequestHeaders.Add("ApiKey", appSettings.SOFDSettings.ApiKey);
+            var httpClientHandler = new HttpClientHandler() { ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => { return true; } };
+            httpClient = new HttpClient(httpClientHandler);            
+            httpClient.DefaultRequestHeaders.Add("ApiKey", appSettings.SOFDSettings.ApiKey);            
         }
 
         public Person UpdatePerson(Person person)
@@ -25,7 +28,7 @@ namespace DigitalIdentity.SOFD
             logger.LogDebug($"Updating person with uuid {person.Uuid}");
             var jsonPerson = JsonConvert.SerializeObject(person);
             var content = new StringContent(jsonPerson.ToString(), Encoding.UTF8, "application/json");
-            var response = httpClient.PatchAsync(new Uri(baseUri, $"persons/{person.Uuid}"), content);   
+            var response = httpClient.PatchAsync(new Uri(baseUri, $"/api/v2/persons/{person.Uuid}"), content);   
             response.Wait();
             Person result;
             if (response.Result.StatusCode == HttpStatusCode.NotModified)
@@ -48,7 +51,7 @@ namespace DigitalIdentity.SOFD
             logger.LogDebug($"Updating orgUnit with uuid {orgUnit.Uuid}");
             var jsonOrgUnit = JsonConvert.SerializeObject(orgUnit);
             var content = new StringContent(jsonOrgUnit.ToString(), Encoding.UTF8, "application/json");
-            var response = httpClient.PatchAsync(new Uri(baseUri, $"orgUnits/{orgUnit.Uuid}"), content);
+            var response = httpClient.PatchAsync(new Uri(baseUri, $"/api/v2/orgUnits/{orgUnit.Uuid}"), content);
             response.Wait();
             OrgUnit result;
             if (response.Result.StatusCode == HttpStatusCode.NotModified)
@@ -68,7 +71,7 @@ namespace DigitalIdentity.SOFD
 
         public void ClearManager(OrgUnit orgUnit)
         {
-            var response = httpClient.GetAsync(new Uri(baseUri, $"orgUnits/{orgUnit.Uuid}/clearManager"));
+            var response = httpClient.GetAsync(new Uri(baseUri, $"/api/v2/orgUnits/{orgUnit.Uuid}/clearManager"));
             response.Wait();
             response.Result.EnsureSuccessStatusCode();
         }
@@ -78,7 +81,7 @@ namespace DigitalIdentity.SOFD
             logger.LogDebug($"Creating person with cpr {Helper.FormatCprForLog(person.Cpr)}");
             var jsonPerson = JsonConvert.SerializeObject(person);
             var content = new StringContent(jsonPerson.ToString(), Encoding.UTF8, "application/json");            
-            var response = httpClient.PostAsync(new Uri(baseUri, "persons"), content);
+            var response = httpClient.PostAsync(new Uri(baseUri, "/api/v2/persons"), content);
             response.Wait();
             response.Result.EnsureSuccessStatusCode();
             var responseString = response.Result.Content.ReadAsStringAsync();
@@ -90,7 +93,7 @@ namespace DigitalIdentity.SOFD
         public List<OrgUnit> GetOrgUnits()
         {
             logger.LogDebug($"Fetching orgunits from SOFD");
-            var response = httpClient.GetAsync(new Uri(baseUri, $"orgUnits?size={appSettings.SOFDSettings.GetOrgUnitsPageSize}"));
+            var response = httpClient.GetAsync(new Uri(baseUri, $"/api/v2/orgUnits?size={appSettings.SOFDSettings.GetOrgUnitsPageSize}"));
             response.Wait();
             response.Result.EnsureSuccessStatusCode();
             var responseString = response.Result.Content.ReadAsStringAsync();
@@ -110,7 +113,7 @@ namespace DigitalIdentity.SOFD
         public Person GetPerson(string cpr)
         {
             logger.LogDebug($"Fetching person with cpr {Helper.FormatCprForLog(cpr)}");
-            var response = httpClient.GetAsync(new Uri(baseUri, $"persons/byCpr/{cpr}"));
+            var response = httpClient.GetAsync(new Uri(baseUri, $"/api/v2/persons/byCpr/{cpr}"));
             response.Wait();
             if( response.Result.StatusCode == HttpStatusCode.NotFound)
             {
@@ -142,7 +145,7 @@ namespace DigitalIdentity.SOFD
 
         private async Task<List<Person>> GetPersonsAsync(int page)
         {
-            var response = await httpClient.GetAsync(new Uri(baseUri, $"persons?size={appSettings.SOFDSettings.GetPersonsPageSize}&page={page}"));
+            var response = await httpClient.GetAsync(new Uri(baseUri, $"/api/v2/persons?size={appSettings.SOFDSettings.GetPersonsPageSize}&page={page}"));
             response.EnsureSuccessStatusCode();
             var responseString = await response.Content.ReadAsStringAsync();            
             var getPersonsDto = JsonConvert.DeserializeObject<GetPersonsDto>(responseString);
@@ -155,5 +158,20 @@ namespace DigitalIdentity.SOFD
             return result;
         }
 
+        public void Notify(List<Notification> notifications)
+        {
+            if (!appSettings.NotificationEnabled)
+            {
+                logger.LogDebug($"Notifications disabled");
+                return;
+            }
+            logger.LogDebug($"Creating notifications");
+            var jsonNotifications = JsonConvert.SerializeObject(notifications);
+            logger.LogTrace(jsonNotifications);
+            var content = new StringContent(jsonNotifications.ToString(), Encoding.UTF8, "application/json");
+            var response = httpClient.PostAsync(new Uri(baseUri, "/api/notifications"), content);
+            response.Wait();
+            response.Result.EnsureSuccessStatusCode();
+        }
     }
 }

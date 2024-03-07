@@ -4,6 +4,7 @@ using DigitalIdentity.SDMOX.Model;
 using DigitalIdentity.SOFD;
 using DigitalIdentity.SOFD.Model;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileSystemGlobbing.Internal.Patterns;
 using Microsoft.Extensions.Logging;
 using sofd_core_sd_integration.Database;
 using sofd_core_sd_integration.Database.Model;
@@ -96,6 +97,7 @@ namespace sofd_core_sd_integration
                     Uuid = dbOrgUnit.VirtualUuid,
                     ParentUuid = dbOrgUnit.ParentVirtualUuid,
                     Level = $"NY{dbOrgUnit.Level}-niveau",
+                    Code = taggedOrgUnit.NYCode,
                     Name = dbOrgUnit.Name,
                     Pnr = dbOrgUnit.PNumber,
                     Address = dbOrgUnit.Street,
@@ -105,14 +107,18 @@ namespace sofd_core_sd_integration
                 };
                 // department is the "afdelings-niveau" unit
                 var department = org.GetDepartmentCopy(dbOrgUnit.SofdUuid, taggedOrgUnit.IsNYUnit ? dbOrgUnit.VirtualUuid : dbOrgUnit.ParentVirtualUuid);
-
+                department.Code = taggedOrgUnit.NUVCode;
                 if (isNew)
                 {
                     if (taggedOrgUnit.IsNYUnit)
                     {
                         sdMOXService.Import(org);
                     }
-                    sdMOXService.Import(department);
+                    // only create departments if shadow departments are enabled or if the tagged org-unit is "afdelings-niveau"/NUV
+                    if (appSettings.OrgSyncCreateShadowDepartments || !taggedOrgUnit.IsNYUnit)
+                    {
+                        sdMOXService.Import(department);
+                    }                    
                 }
                 else
                 {
@@ -127,7 +133,11 @@ namespace sofd_core_sd_integration
                         }
                         else
                         {
-                            sdMOXService.Flyt(department);
+                            // only move departments if shadow departments are enabled or if the tagged org-unit is "afdelings-niveau"/NUV
+                            if (appSettings.OrgSyncCreateShadowDepartments || !taggedOrgUnit.IsNYUnit)
+                            {
+                                sdMOXService.Flyt(department);
+                            }
                         }                        
                     }
                     if (dbOrgUnit.IsChanged())
@@ -136,8 +146,12 @@ namespace sofd_core_sd_integration
                         if (taggedOrgUnit.IsNYUnit)
                         {
                             sdMOXService.Ret(org);
-                        }                        
-                        sdMOXService.Ret(department);
+                        }
+                        // only edit departments if shadow departments are enabled or if the tagged org-unit is "afdelings-niveau"/NUV
+                        if (appSettings.OrgSyncCreateShadowDepartments || !taggedOrgUnit.IsNYUnit)
+                        {
+                            sdMOXService.Ret(department);
+                        }
                     }
                 }
                 databaseContext.SaveChanges();
@@ -177,7 +191,45 @@ namespace sofd_core_sd_integration
                 }
                 node.IsSDTagged = true;
                 node.IsNYUnit = sdTag.CustomValue.StartsWith("NY");
-                node.Level = node.IsNYUnit ? int.Parse(Regex.Replace(sdTag.CustomValue, @"\D", "")) : 0;
+                // if UseCodes then tag format is NYx-yyyy-zzzz or NUV-zzzz
+                if (appSettings.SDSettings.UseCodes)
+                {
+                    if (node.IsNYUnit)
+                    {
+                        var match = Regex.Match(sdTag.CustomValue, @"NY(?<Level>\d+)-(?<NYCode>[\da-z]{4})-(?<NUVCode>[\da-z]{4})", RegexOptions.IgnoreCase);
+                        if (match.Success)
+                        {
+                            node.Level = int.Parse(match.Groups["Level"].Value);
+                            node.NYCode = match.Groups["NYCode"].Value;
+                            node.NUVCode = match.Groups["NUVCode"].Value;
+                        }
+                        else
+                        {
+                            node.IsSDTagged = false;
+                            logger.LogWarning($"Invalid SD tag value {sdTag.CustomValue} for orgunit {node.Name} with uuid {node.Uuid}");
+                        }
+                    }
+                    else
+                    {
+                        var match = Regex.Match(sdTag.CustomValue, @"NUV-(?<NUVCode>[\da-z]{4})",RegexOptions.IgnoreCase);
+                        if (match.Success)
+                        {
+                            node.NUVCode = match.Groups["NUVCode"].Value;
+                            node.Level = 0;
+                        }
+                        else
+                        {
+                            node.IsSDTagged = false;
+                            logger.LogWarning($"Invalid SD tag value {sdTag.CustomValue} for orgunit {node.Name} with uuid {node.Uuid}");
+                        }
+                    }
+                }
+                // if not UseCodes then tag format is NYx or NUV
+                else
+                {
+                    node.Level = node.IsNYUnit ? int.Parse(Regex.Replace(sdTag.CustomValue, @"\D", "")) : 0;
+                }
+                
             }
 
             foreach (var child in children)

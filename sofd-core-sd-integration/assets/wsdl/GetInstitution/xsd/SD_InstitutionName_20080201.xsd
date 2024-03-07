@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<schema xmlns:sd="http://rep.oio.dk/sd.dk/xml.schema/20080201/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="http://rep.oio.dk/sd.dk/xml.schema/20080201/" xmlns="http://www.w3.org/2001/XMLSchema">
-  <element name="InstitutionName" type="string" />
-</schema>

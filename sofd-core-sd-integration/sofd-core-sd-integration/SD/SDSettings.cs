@@ -10,6 +10,7 @@ namespace DigitalIdentity.SD
         public List<Institution> Institutions { get; set; } = new List<Institution>();
         public string FunkBaseUrl { get; set; }
         public string FunkTopInstUuid { get; set; }
+        public bool UseCodes { get; set; } = false;
 
         public class Institution
         {

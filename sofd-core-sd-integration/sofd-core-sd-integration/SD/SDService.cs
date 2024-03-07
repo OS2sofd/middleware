@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace DigitalIdentity.SD
 {
@@ -36,22 +37,29 @@ namespace DigitalIdentity.SD
         public SDPerson GetPerson(string institutionIdentifier, string cpr)
         {
             logger.LogDebug($"Getting Person from institution {institutionIdentifier}, cpr {Helper.FormatCprForLog(cpr)}");
-            var request = new GetPerson.GetPerson20111201OperationRequest();
-            request.GetPerson = new GetPerson.GetPersonRequestType();
-            request.GetPerson.InstitutionIdentifier = institutionIdentifier;
-            request.GetPerson.PersonCivilRegistrationIdentifier = cpr;
-            request.GetPerson.StatusActiveIndicator = true;
-            request.GetPerson.StatusPassiveIndicator = false;
-            request.GetPerson.EffectiveDate = DateTime.Now;
-            request.GetPerson.PostalAddressIndicator = true;
-            var response = sdServiceStubs.GetPersonClient.GetPerson20111201Operation(request);
-            var person = response?.GetPerson20111201?.Person?.FirstOrDefault();
-            if (person == null)
+            try
+            {
+                var request = new GetPerson.GetPerson20111201OperationRequest();
+                request.GetPerson = new GetPerson.GetPersonRequestType();
+                request.GetPerson.InstitutionIdentifier = institutionIdentifier;
+                request.GetPerson.PersonCivilRegistrationIdentifier = cpr;
+                request.GetPerson.StatusActiveIndicator = true;
+                request.GetPerson.StatusPassiveIndicator = false;
+                request.GetPerson.EffectiveDate = DateTime.Now;
+                request.GetPerson.PostalAddressIndicator = true;
+                var response = sdServiceStubs.GetPersonClient.GetPerson20111201Operation(request);
+                var person = response?.GetPerson20111201?.Person?.FirstOrDefault();
+                if (person == null)
+                {
+                    throw new Exception("Person not found");
+                }
+                var result = SDPerson.FromPersonType(person);
+                return result;
+            }
+            catch (Exception)
             {
                 throw new Exception($"Person with InstitutionIdentifier {institutionIdentifier} and cpr {Helper.FormatCprForLog(cpr)} not found in SD");
             }
-            var result = SDPerson.FromPersonType(person);
-            return result;
         }
 
         public List<SDPerson> GetAllEmployments(string institutionIdentifier, string employmentIdentifier, string cpr)
@@ -131,12 +139,26 @@ namespace DigitalIdentity.SD
             request.DeactivationDate = DateTime.Now;
             request.UUIDIndicator = true;
             var organization = sdServiceStubs.GetOrganizationClient.GetOrganization20111201Operation(request);
-            var orgUnits = new Dictionary<string, SDOrgUnit>();
-            AddDepartmentRecursive(orgUnits, organization.Organization.First().DepartmentReference);
-            return orgUnits.Values.ToList();
+
+            var departmentRequest = new GetDepartment.GetDepartmentRequestType();
+            departmentRequest.InstitutionIdentifier = institutionIdentifier;
+            departmentRequest.ActivationDate = DateTime.Now;
+            departmentRequest.DeactivationDate = DateTime.Now;
+            departmentRequest.ContactInformationIndicator = false;
+            departmentRequest.DepartmentNameIndicator = true;
+            departmentRequest.EmploymentDepartmentIndicator = false;
+            departmentRequest.PostalAddressIndicator = false;
+            departmentRequest.ProductionUnitIndicator = false;
+            departmentRequest.UUIDIndicator = true;
+            var departments = sdServiceStubs.GetDepartmentClient.GetDepartment20111201Operation(departmentRequest);
+
+            var orgUnitsDictionary = new Dictionary<string, SDOrgUnit>();
+            AddDepartmentRecursive(orgUnitsDictionary, organization.Organization.First().DepartmentReference, departments);
+            var orgUnits = orgUnitsDictionary.Values.ToList();
+            return orgUnits;
         }
 
-        private void AddDepartmentRecursive(Dictionary<string, SDOrgUnit> orgUnits, GetOrganization.DepartmentReferenceType[] departments)
+        private void AddDepartmentRecursive(Dictionary<string, SDOrgUnit> orgUnits, GetOrganization.DepartmentReferenceType[] departments, GetDepartment.GetDepartment20111201Type allDepartments)
         {
             foreach (var department in departments)
             {
@@ -144,16 +166,23 @@ namespace DigitalIdentity.SD
                 {
                     var orgUnit = new SDOrgUnit();
                     orgUnit.Uuid = department.DepartmentUUIDIdentifier;
-                    orgUnit.ParentUuid = department.DepartmentReference?.FirstOrDefault()?.DepartmentUUIDIdentifier;
+                    orgUnit.DepartmentIdentifier = department.DepartmentIdentifier.ToLower();
+                    orgUnit.Name = allDepartments.Department.Where(d => d.DepartmentUUIDIdentifier == department.DepartmentUUIDIdentifier).FirstOrDefault()?.DepartmentName;
+                    var parentDepartment = department.DepartmentReference?.FirstOrDefault();
+                    if (parentDepartment != null)
+                    {
+                        orgUnit.ParentUuid = parentDepartment.DepartmentUUIDIdentifier;
+                        var prefix = parentDepartment.DepartmentLevelIdentifier.Split("-").First();
+                        orgUnit.ParentDepartmentIdentifier = $"{prefix}:{parentDepartment.DepartmentIdentifier}".ToLower();
+                    }                                        
                     orgUnits.Add(orgUnit.Uuid, orgUnit);
                     if (orgUnit.ParentUuid != null)
                     {
-                        AddDepartmentRecursive(orgUnits, department.DepartmentReference);
+                        AddDepartmentRecursive(orgUnits, department.DepartmentReference,allDepartments);
                     }
                 }
             }
         }
-
 
         public List<FunkOrgEnhed> GetOrgFunctions()
         {

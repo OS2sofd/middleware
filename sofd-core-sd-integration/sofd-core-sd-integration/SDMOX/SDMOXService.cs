@@ -86,7 +86,7 @@ namespace DigitalIdentity.SDMOX
         }
 
 
-        private VirkningType GetVirkning()
+        private VirkningType GetVirkningMonth()
         {
             var virkning = new VirkningType();
             virkning.FraTidspunkt = new TidspunktType() { Item = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1) };
@@ -94,13 +94,21 @@ namespace DigitalIdentity.SDMOX
             return virkning;
         }
 
-        private void SetParent(ref RegistreringBeskedType obj, string parentUuid)
+        private VirkningType GetVirkningYear()
+        {
+            var virkning = new VirkningType();
+            virkning.FraTidspunkt = new TidspunktType() { Item = new DateTime(DateTime.Now.Year, 1, 1) };
+            virkning.TilTidspunkt = new TidspunktType() { Item = DateTime.MaxValue };
+            return virkning;
+        }
+
+        private void SetParent(ref RegistreringBeskedType obj, string parentUuid, VirkningType virkning)
         {
             // Relationliste
             obj.Registrering.RelationListe = new RelationListeType();
             var overordnet = new OrganisationEnhedRelationType();
             overordnet.ReferenceID = new UnikIdType() { ItemElementName = ItemChoiceType.UUIDIdentifikator, Item = parentUuid ?? appSettings.SDMOXSettings.InstitutionUUID };
-            overordnet.Virkning = GetVirkning();
+            overordnet.Virkning = virkning;
             obj.Registrering.RelationListe.Overordnet = new OrganisationEnhedRelationType[] { overordnet };
         }
 
@@ -109,12 +117,13 @@ namespace DigitalIdentity.SDMOX
         {
             var obj = GetRegistreringBeskedType(orgDto.Uuid);
             obj.Registrering.LivscyklusKode = LivscyklusKodeType.Flyttet;
-            SetParent(ref obj, orgDto.ParentUuid);
+            SetParent(ref obj, orgDto.ParentUuid, GetVirkningMonth());
             SendToMq(obj);
         }
 
-        public void Ret(SDMoxOrgDto orgDto)
+        public void Ret(SDMoxOrgDto orgDto, VirkningType virkning = null)
         {
+            virkning ??= GetVirkningMonth();
             var obj = GetRegistreringBeskedType(orgDto.Uuid);
             obj.Registrering.LivscyklusKode = LivscyklusKodeType.Rettet;
 
@@ -122,14 +131,14 @@ namespace DigitalIdentity.SDMOX
             obj.Registrering.TilstandListe = new TilstandListeType();
             var gyldighed = new GyldighedType();
             gyldighed.GyldighedStatusKode = GyldighedStatusKodeType.Aktiv; // SD doesn't use this
-            gyldighed.Virkning = GetVirkning();
+            gyldighed.Virkning = virkning;
             obj.Registrering.TilstandListe.Gyldighed = new GyldighedType[] { gyldighed };
 
             // Attributliste
             obj.Registrering.AttributListe = new AttributListeType();
             var egenskab = new EgenskabType();
             egenskab.EnhedNavn = orgDto.Name;
-            egenskab.Virkning = GetVirkning();
+            egenskab.Virkning = virkning;
             obj.Registrering.AttributListe.Egenskab = new EgenskabType[] { egenskab };
 
             // Attributliste - LokalUdvidelse”
@@ -138,23 +147,23 @@ namespace DigitalIdentity.SDMOX
             var niveau = new IntegrationType();
             niveau.AttributNavn = "Niveau";
             niveau.AttributVaerdi = orgDto.Level;
-            niveau.Virkning = GetVirkning();
+            niveau.Virkning = virkning;
             attributUdvidelser.Add(niveau.ToXmlElement());
             obj.Registrering.AttributListe.LokalUdvidelse = new LokalUdvidelseType() { Any = attributUdvidelser.ToArray() };
 
 
             // Relationliste (parent relation is not set in "ret" operation)
             obj.Registrering.RelationListe = new RelationListeType();
-            var relationUdvidelser = new List<XmlElement>();            
+            var relationUdvidelser = new List<XmlElement>();
             var lokation = new LokationType();
-            lokation.ProduktionEnhed = new ProduktionEnhedType() { ProduktionEnhedIdentifikator = orgDto.Pnr, Virkning = GetVirkning() };
-            lokation.Kontakt = new KontaktType() { LokalTelefonnummerIdentifikator = orgDto.Phone, Virkning = GetVirkning() };
+            lokation.ProduktionEnhed = new ProduktionEnhedType() { ProduktionEnhedIdentifikator = orgDto.Pnr, Virkning = virkning };
+            lokation.Kontakt = new KontaktType() { LokalTelefonnummerIdentifikator = orgDto.Phone, Virkning = virkning };
             lokation.DanskAdresse = new DanskAdresseType()
             {
                 AdresseNavn = orgDto.Address,
                 PostKodeIdentifikator = orgDto.PostalCode,
                 ByNavn = orgDto.City,
-                Virkning = GetVirkning()
+                Virkning = virkning
             };
             relationUdvidelser.Add(lokation.ToXmlElement());
             obj.Registrering.RelationListe.LokalUdvidelse = new LokalUdvidelseType { Any = relationUdvidelser.ToArray() };
@@ -165,6 +174,8 @@ namespace DigitalIdentity.SDMOX
 
         public void Import(SDMoxOrgDto orgDto)
         {
+            var virkning = appSettings.StartVirkningJanuary ? GetVirkningYear() : GetVirkningMonth();
+
             var obj = GetRegistreringBeskedType(orgDto.Uuid);
             obj.Registrering.LivscyklusKode = LivscyklusKodeType.Opstaaet;
 
@@ -173,14 +184,14 @@ namespace DigitalIdentity.SDMOX
             obj.Registrering.TilstandListe = new TilstandListeType();
             var gyldighed = new GyldighedType();
             gyldighed.GyldighedStatusKode = GyldighedStatusKodeType.Aktiv; // SD doesn't use this
-            gyldighed.Virkning = GetVirkning();
+            gyldighed.Virkning = virkning;
             obj.Registrering.TilstandListe.Gyldighed = new GyldighedType[] { gyldighed };
 
             // Attributliste
             obj.Registrering.AttributListe = new AttributListeType();
             var egenskab = new EgenskabType();
             egenskab.EnhedNavn = orgDto.Name;
-            egenskab.Virkning = GetVirkning();
+            egenskab.Virkning = virkning;
             obj.Registrering.AttributListe.Egenskab = new EgenskabType[] { egenskab };
 
             // Attributliste - LokalUdvidelse”
@@ -188,14 +199,23 @@ namespace DigitalIdentity.SDMOX
             var niveau = new IntegrationType();
             niveau.AttributNavn = "Niveau";
             niveau.AttributVaerdi = orgDto.Level;
-            niveau.Virkning = GetVirkning();
+            niveau.Virkning = virkning;
             lokalUdvidelser.Add(niveau.ToXmlElement());
+
+            if (orgDto.Code != null){
+                var code = new IntegrationType();
+                code.AttributNavn = "EnhedKode";
+                code.AttributVaerdi = orgDto.Code;
+                code.Virkning = virkning;
+                lokalUdvidelser.Add(code.ToXmlElement());
+            }
+
             obj.Registrering.AttributListe.LokalUdvidelse = new LokalUdvidelseType() { Any = lokalUdvidelser.ToArray() };
 
-            SetParent(ref obj, orgDto.ParentUuid);
-            
+            SetParent(ref obj, orgDto.ParentUuid, virkning);
+
             SendToMq(obj);
-            Ret(orgDto);
+            Ret(orgDto, virkning);
         }
     }
 }

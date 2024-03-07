@@ -18,7 +18,12 @@ namespace sofd_core_sd_integration
         public Dictionary<string, decimal> PositionOccupationHoursMap { get; set; }
         public bool DryRun { get; set; }
         public bool OrgSyncEnabled { get; set; }
+        public bool OrgSyncCreateShadowDepartments { get; set; } = true;
         public bool EmployeeSyncEnabled { get; set; }
+        public bool EmployeeSyncUseTags { get; set; } = false;
+        public string EmployeeSyncTagName { get; set; }
         public bool FunctionSyncEnabled { get; set; }
+        public bool NotificationEnabled { get; set; } = false;
+        public bool StartVirkningJanuary { get; set; } = false;
     }
 }

@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<schema xmlns:sdrequest="http://rep.oio.dk/sd.dk/xml.schema/20080201/GetProfession20080201" xmlns:sd20070301="http://rep.oio.dk/sd.dk/xml.schema/20070301/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="http://rep.oio.dk/sd.dk/xml.schema/20080201/GetProfession20080201" version="1.0" xmlns="http://www.w3.org/2001/XMLSchema">
-  <include schemaLocation="../../../sd.dk/xml.schema/20080201/SD_GetProfessionRequest.xsd" />
-  <element name="GetProfession20080201" type="sdrequest:GetProfessionRequestType" />
-</schema>

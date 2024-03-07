@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<schema xmlns:sd="urn:oio:sd:snitflader:2011.12.01" xmlns:sd20070401="http://rep.oio.dk/sd.dk/xml.schema/20070401/" xmlns:sd20070301="http://rep.oio.dk/sd.dk/xml.schema/20070301/" xmlns:sd20080201="http://rep.oio.dk/sd.dk/xml.schema/20080201/" xmlns:cpr20050318="http://rep.oio.dk/cpr.dk/xml/schemas/core/2005/03/18/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="urn:oio:sd:snitflader:2011.12.01" xmlns="http://www.w3.org/2001/XMLSchema">
-  <include schemaLocation="SD_GetEmploymentChangedRequest_20111201.xsd" />
-  <element name="GetEmploymentChanged" type="sd:GetEmploymentChangedRequestType" />
-</schema>

@@ -67,6 +67,8 @@ namespace DigitalIdentity.SOFD.Model
         public OrgUnit ParentSDUnit { get; set; }
         public int Level { get; set; }
         public bool IsSDTagged { get; set; }
-        public bool IsNYUnit { get; set; }
+        public bool IsNYUnit { get; set; }                
+        public string NYCode { get; set; }
+        public string NUVCode { get; set; }
     }
 }

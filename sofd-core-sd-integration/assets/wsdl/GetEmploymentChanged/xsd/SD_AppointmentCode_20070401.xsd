@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<schema xmlns:sd="http://rep.oio.dk/sd.dk/xml.schema/20070401/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" version="1.0" xmlns="http://www.w3.org/2001/XMLSchema">
-  <element name="AppointmentCode" type="sd:AppointmentCodeType" />
-  <simpleType name="AppointmentCodeType">
-    <restriction base="string">
-      <pattern value=".|Empty" />
-    </restriction>
-  </simpleType>
-</schema>
