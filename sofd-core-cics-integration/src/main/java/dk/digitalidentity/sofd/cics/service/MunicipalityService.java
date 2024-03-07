@@ -26,11 +26,14 @@ public class MunicipalityService {
 	
 	@Autowired
 	private SofdConfiguration sofdConfiguration;
+	
+	@Autowired
+	private MunicipalityService self;
 
 	@SuppressWarnings("deprecation")
 	@PostConstruct
 	private void init() {
-		//Migration of municipalities from application.properties to database
+		// migration of municipalities from application.properties to database
 		if (municipalityDao.findAll().isEmpty()) {
 			sofdConfiguration.getMunicipalities().forEach(m -> {
 				Municipality municipality = new Municipality();
@@ -47,10 +50,14 @@ public class MunicipalityService {
 		}
 	}
 
-	@Scheduled(fixedRate = 1 * 60 * 1000)
-	@CacheEvict(value = "municipalities", allEntries = true)
+	@Scheduled(fixedRate = 5 * 60 * 1000)
 	public void clearMunicipalitiesCache() {
-		// Clear cache
+		self.clearCache();
+	}
+
+	@CacheEvict(value = "municipalities", allEntries = true)
+	public void clearCache() {
+		
 	}
 
 	@Cacheable("municipalities")

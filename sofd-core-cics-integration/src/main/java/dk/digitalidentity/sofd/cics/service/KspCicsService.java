@@ -139,7 +139,7 @@ public class KspCicsService {
 	@Autowired
 	private SOFDService sofdService;
 
-	@Value("${kmd.kspcics.url:https://intewswlbs-wm.kmd.dk/KMD.YH.KSPAabenSpml/KspAabenSpml.asmx}")
+	@Value("${kmd.kspcics.url:https://int-ewswlbs-wm3q2021.kmd.dk/KMD.YH.KSPAabenSpml/KSPAabenSPML.asmx}")
 	private String kspCicsUrl;
 	
 	public List<KspUser> loadAllCicsUsers(Municipality municipality) {
@@ -149,7 +149,7 @@ public class KspCicsService {
 			return response.getUsers();
 		}
 		
-		return null;
+		return new ArrayList<>();
 	}
 	
 	public String createUser(Municipality municipality, Person person, String userId) {
@@ -164,15 +164,15 @@ public class KspCicsService {
         		.filter(u -> u.getUserType().equals("EXCHANGE") && u.isPrime())
         		.findFirst();
 
-        if (!user.isPresent()) {
-		user = person.getUsers().stream()
-			.filter(u -> u.getUserType().equals("ACTIVE_DIRECTORY") && u.isPrime())
-			.findFirst();
-
 		if (!user.isPresent()) {
-			return "Personen har ikke en EXCHANGE konto at knytte CICS kontoen til, og fallback til sAMAccountName var ikke muligt";
+			user = person.getUsers().stream().filter(u -> u.getUserType().equals("ACTIVE_DIRECTORY") && u.isPrime())
+					.findFirst();
+
+			if (!user.isPresent()) {
+				return "Personen har ikke en EXCHANGE konto at knytte CICS kontoen til, og fallback til sAMAccountName var ikke muligt";
+			}
 		}
-        }
+		
         String localUserId = user.get().getUserId();
         
         Optional<Affiliation> affiliation = person.getAffiliations().stream().filter(a -> a.isPrime()).findFirst();
@@ -215,7 +215,7 @@ public class KspCicsService {
     		response = restTemplate.postForEntity(kspCicsUrl, request, String.class);
 			if (response.getStatusCodeValue() != 200) {
 				if (--tries >= 0) {
-					log.warn("CreateUser - Got responseCode " + response.getStatusCodeValue() + " from service");
+					log.warn(municipality.getName() + ": CreateUser - Got responseCode " + response.getStatusCodeValue() + " from service");
 					
 					try {
 						Thread.sleep(5000);
@@ -225,7 +225,7 @@ public class KspCicsService {
 					}
 				}
 				else {
-					log.error("CreateUser - Got responseCode " + response.getStatusCodeValue() + " from service. Request=" + request + " / Response=" + response.getBody());
+					log.error(municipality.getName() + ": CreateUser - Got responseCode " + response.getStatusCodeValue() + " from service. Request=" + request + " / Response=" + response.getBody());
 					return ("KSP/CICS HTTP ErrorCode: " + response.getStatusCodeValue());
 				}
 			}
@@ -247,13 +247,13 @@ public class KspCicsService {
 			wrapper = xmlMapper.readValue(addResponse, ResultWrapper.class);
 		}
 		catch (Exception ex) {
-			log.error("CreateUser - Failed to decode response for " + municipality.getName() + ": " + responseBody, ex);
+			log.error(municipality.getName() + ": CreateUser - Failed to decode response for " + municipality.getName() + ": " + responseBody, ex);
 			
 			return "Failed to decode response from KSP/CICS";
 		}
 
 		if (!SUCCESS_RESPONSE.equals(wrapper.getResult())) {
-			log.error("CreateUser - Got a non-success response: " + wrapper.getResult() + " for " + municipality.getName() + ". Request=" + payload + " / Response=" + responseBody);
+			log.error(municipality.getName() + ": CreateUser - Got a non-success response: " + wrapper.getResult() + " for " + municipality.getName() + ". Request=" + payload + " / Response=" + responseBody);
 			
 			return ("KSP/CICS ErrorCode: " + wrapper.getErrorMessage() + " (" + wrapper.getResult() + ")");
 		}
