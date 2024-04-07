@@ -11,6 +11,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -193,7 +194,7 @@ public class KspCicsService {
         							   .replace(SOAP_ARG_SURNAME, person.getSurname())
         							   .replace(SOAP_ARG_DEPARTMENT, department)
         							   .replace(SOAP_ARG_LOCAL_USERID, localUserId)
-        							   .replace(SOAP_ARG_PASSWORD, randomPassword()));
+        							   .replace(SOAP_ARG_PASSWORD, getPassword(municipality)));
         builder.append(SOAP_WRAPPER_END);
 
         String payload = builder.toString();
@@ -516,6 +517,14 @@ public class KspCicsService {
 		return kspUsersResponse;
 	}
 	
+	private String getPassword(Municipality municipality) {
+		if (StringUtils.hasLength(municipality.getInitialPassword())) {
+			return municipality.getInitialPassword();
+		}
+		
+		return randomPassword();
+	}
+
 	private String randomPassword() {
 		StringBuilder builder = new StringBuilder();
 		

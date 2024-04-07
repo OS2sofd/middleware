@@ -13,6 +13,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class Municipality {
+	
 	@Id
 	@Column
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,18 +21,27 @@ public class Municipality {
 
 	@Column
 	private String name;
+
 	@Column
 	private String cicsKeystore;
+	
 	@Column
 	private String cicsPassword;
+	
 	@Column
 	private String cicsLosId;
+	
 	@Column
 	private String sofdUrl;
+	
 	@Column
 	private String sofdApiKey;
+	
 	@Column
 	private boolean accountOrdersEnabled;
 
+	@Column
+	private String initialPassword;
+	
 	private transient long head;
 }

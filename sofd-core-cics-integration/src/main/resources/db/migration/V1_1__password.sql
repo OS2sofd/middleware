@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN initial_password VARCHAR(64) NULL;
