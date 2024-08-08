@@ -18,21 +18,26 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.microsoft.graph.requests.GraphServiceClient;
-import dk.sofd.organization.ad.service.model.*;
-import okhttp3.Request;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import com.microsoft.graph.requests.GraphServiceClient;
+
 import dk.sofd.organization.ad.activedirectory.ADUser;
+import dk.sofd.organization.ad.dao.model.Municipality;
 import dk.sofd.organization.ad.security.MunicipalityHolder;
+import dk.sofd.organization.ad.service.model.Affiliation;
+import dk.sofd.organization.ad.service.model.AzureUser;
+import dk.sofd.organization.ad.service.model.Person;
+import dk.sofd.organization.ad.service.model.Phone;
+import dk.sofd.organization.ad.service.model.User;
 import dk.sofd.organization.ad.service.model.enums.Visibility;
 import dk.sofd.organization.ad.utility.ObjectCloner;
-import dk.sofd.organization.ad.dao.model.Municipality;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Request;
 
 @Slf4j
 @EnableAsync
@@ -58,7 +63,7 @@ public class SyncService {
 				enrichADUsersWithAzureADLocalExtension(adUsers, azureUsers, municipality);
 			}
 
-			merge(municipality, buildADUserHashMap(adUsers), buildPersonHashMap(sofdOrganizationService.getPersons()), true);
+			merge(municipality, buildADUserHashMap(municipality, adUsers), buildPersonHashMap(sofdOrganizationService.getPersons()), true);
 
 			log.info("Completed full sync for: " + municipality.getName());
 		}
@@ -93,7 +98,7 @@ public class SyncService {
 				}
 
 				// only perform synchronization if we can map user to a person by cpr
-				else if (adUser.hasValidCprAttribute()) {
+				else if (adUser.hasValidCprAttribute(municipality)) {
 					if (municipality.isAzureLookupEnabled()) {
 						if (!doFullFetchOfAzure) {
 							Map.Entry<String, AzureUser> azureUserEntry = azureAdService.fetchAzureUserById(graphServiceClient, municipality, adUser.getUserId());
@@ -105,11 +110,11 @@ public class SyncService {
 						enrichAdUser(azureUsers, municipality, adUser);
 					}
 
-					Collection<Person> persons = sofdOrganizationService.getPersons(adUser.getCpr());
-					merge(municipality, buildADUserHashMap(Arrays.asList(adUser)), buildPersonHashMap(persons), false);
+					Collection<Person> persons = sofdOrganizationService.getPersons(adUser.getCpr(municipality));
+					merge(municipality, buildADUserHashMap(municipality, Arrays.asList(adUser)), buildPersonHashMap(persons), false);
 				}
 				else {
-					log.warn(adUser.getUserId() + " does not have a valid cpr '" + adUser.getCpr() + "'");
+					log.warn(adUser.getUserId() + " does not have a valid cpr '" + adUser.getCpr(municipality) + "'");
 				}
 			}
 
@@ -140,17 +145,38 @@ public class SyncService {
 		}
 	}
 
+	private static boolean isSubstituteUser(String username) {
+		final String substituteRegex = "^vik\\d+$";
+
+		if (!StringUtils.hasLength(username)) {
+			return false;
+		}
+		
+		return username.toLowerCase().matches(substituteRegex);
+	}
+
 	private void merge(Municipality municipality, HashMap<String, List<ADUser>> adUsers, HashMap<String, Person> persons, boolean isFullSync) throws Exception {
 		if (StringUtils.hasLength(municipality.getNameReplacePattern())) {
 			regexReplaceChosenName(municipality, adUsers);
 		}
 
+		// find any vikXXXX users and strip displayName/chosenName as we do not want those in OS2sofd
+		for (List<ADUser> users : adUsers.values()) {
+			if (users != null) {
+				for (ADUser user : users) {
+					if (isSubstituteUser(user.getUserId())) {
+						user.setChosenName(null);
+					}
+				}
+			}
+		}
+		
 		// find person elements that need to be created. ie. elements that are
 		// not in sofd organization
 		HashSet<String> toBeCreated = new HashSet<>(adUsers.keySet());
 		toBeCreated.removeAll(persons.keySet());
 		for (String cpr : toBeCreated) {
-			if (adUsers.get(cpr).stream().anyMatch(u -> u.shouldSynchronizeUser(municipality.isSupportInactiveUsers()))) {
+			if (adUsers.get(cpr).stream().anyMatch(u -> u.shouldSynchronizeUser(municipality))) {
 				handleCreate(municipality, adUsers.get(cpr));
 			}
 		}
@@ -186,7 +212,7 @@ public class SyncService {
 		ADUser firstADUser = adUsers.stream().sorted().findFirst().get();
 		Person person = new Person();
 		person.setMaster(adMasterIdentifier);
-		person.setCpr(firstADUser.getCpr());
+		person.setCpr(firstADUser.getCpr(municipality));
 		person.setFirstname(firstADUser.getFirstname());
 		person.setSurname(firstADUser.getSurname());
 		person.setChosenName(firstADUser.getChosenName() != null ? firstADUser.getChosenName() : null);
@@ -202,7 +228,7 @@ public class SyncService {
 
 		HashSet<User> users = new HashSet<User>();
 		HashSet<Affiliation> affiliations = new HashSet<Affiliation>();
-		for (ADUser adUser : adUsers.stream().filter(u -> u.shouldSynchronizeUser(municipality.isSupportInactiveUsers())).collect(Collectors.toList())) {
+		for (ADUser adUser : adUsers.stream().filter(u -> u.shouldSynchronizeUser(municipality)).collect(Collectors.toList())) {
 			// User has an affiliation registered in AD (external users, substitutes etc.)
 			// TODO: remove this feature some point in the future... Næstved, Favrskov and Syddjurs (maybe Norddjurs) uses
 			//       this, but they should start using SOFD for registering this instead
@@ -261,7 +287,7 @@ public class SyncService {
 
 	private void handleUpdate(Municipality municipality, List<ADUser> adUsers, Person person, boolean isFullSync) throws Exception {
 		Person patchedPerson = new Person();
-		boolean hasActiveUsers = adUsers.stream().anyMatch(u -> u.shouldSynchronizeUser(false));
+		boolean hasActiveUsers = adUsers.stream().anyMatch(u -> u.shouldSynchronizeUser());
 
 		// undelete deleted Persons if we have active AD accounts (and take control of the Person if needed)
 		if (hasActiveUsers && person.isDeleted()) {
@@ -361,11 +387,21 @@ public class SyncService {
 			handleAffiliations(municipality, adUsers, person, patchedPerson, isFullSync);
 		}
 
+		if (!patchedPerson.equals(new Person())) {
+			if (municipality.isDebugPatch()) {
+				log.warn("patchedPerson before looking at user details (should only very rarely have changes): " + patchedPerson.toString());
+			}
+		}
+		
 		// Handle users
 		handleUsers(municipality, adUsers, person, patchedPerson, isFullSync);
 
 		// an update is required if the patched person differs from a new empty
 		if (!patchedPerson.equals(new Person())) {
+			if (municipality.isDebugPatch()) {
+				log.warn("patchedPerson: " + patchedPerson.toString());
+			}
+
 			patchedPerson.setUuid(person.getUuid());
 
 			sofdOrganizationService.update(patchedPerson);
@@ -442,21 +478,24 @@ public class SyncService {
 
 				// note that is MITID_ERHVERV users comes from other sources (e.g. OS2faktor), then the master is different,
 				// so this only updates those from AD
-				Optional<User> matchingMitIDErhvervUser = sofdUsers.stream()
-						.filter(u -> u.getMaster().equals(adMasterIdentifier) &&
-								     u.getUserType().equals("MITID_ERHVERV") &&
-								     u.getMasterId().equals(sofdUser.getUserId()))
-						.findFirst();
-
-				// email users are only for real active directory (why?)
-				User emailUser = null, mitIdErhvervUser = null;
+				User mitIdErhvervUser = null;
 				if (municipality.getUserType().equals("ACTIVE_DIRECTORY")) {
+					Optional<User> matchingMitIDErhvervUser = sofdUsers.stream()
+							.filter(u -> u.getMaster().equals(adMasterIdentifier) &&
+									     u.getUserType().equals("MITID_ERHVERV") &&
+									     u.getMasterId().equals("mitid-" + sofdUser.getUserId()))
+							.findFirst();
+	
+					mitIdErhvervUser = matchingMitIDErhvervUser.isPresent() ? matchingMitIDErhvervUser.get() : null;
+				}
+				
+				User emailUser = null;
+				if (municipality.isCreateEmailEnabled()) {
 					emailUser = matchingEmailUser.isPresent() ? matchingEmailUser.get() : null;
 				}
 
-				mitIdErhvervUser = matchingMitIDErhvervUser.isPresent() ? matchingMitIDErhvervUser.get() : null;
 
-				if (!adUser.shouldSynchronizeUser(municipality.isSupportInactiveUsers())) {
+				if (!adUser.shouldSynchronizeUser(municipality)) {
 					sofdUsers.remove(sofdUser);
 					
 					if (emailUser != null) {
@@ -470,10 +509,31 @@ public class SyncService {
 					hasUsersChanged = true;
 				}
 				else {
+					// make a copy of user from SOFD
 					User originalUser = objectCloner.deepCopy(sofdUser);
+
+					// copy data from AD into the copy from SOFD
 					inflateUserFromAdUser(municipality, sofdUser, adUser);
 
+					// because null == 9999-12-31 we do this, so we don't get unneeded patches against SOFD (yeah I know, could be done smarter probably)
+					if (originalUser.getPasswordExpireDate() == null && "9999-12-31".equals(sofdUser.getPasswordExpireDate())) {
+						originalUser.setPasswordExpireDate(sofdUser.getPasswordExpireDate());
+					}
+					if (originalUser.getAccountExpireDate() == null && "9999-12-31".equals(sofdUser.getAccountExpireDate())) {
+						originalUser.setAccountExpireDate(sofdUser.getAccountExpireDate());
+					}
+					
+					// if employeeId is controlled from the UI, we need to ignore the value from the AD
+					if (municipality.isActiveDirectoryEmployeeIdAssociationEnabled()) {
+						originalUser.setEmployeeId(sofdUser.getEmployeeId());
+					}
+					
+					// this should only ever trigger if there are ACTUAL business changes in the data
 					if (!sofdUser.equals(originalUser)) {
+						if (municipality.isDebugPatch()) {
+							log.warn("user mismatch on patch: modifiedUser=" + sofdUser.toString() + " / originalUser=" + originalUser.toString());
+						}
+
 						hasUsersChanged = true;
 					}
 
@@ -505,32 +565,34 @@ public class SyncService {
 					}
 					
 					// MitID Erhverv updates
-					if (StringUtils.hasLength(adUser.getMitIDUUID())) {
-						if (mitIdErhvervUser != null) {
-							if (!Objects.equals(mitIdErhvervUser.getUserId(), adUser.getMitIDUUID()) ||
-								!Objects.equals(mitIdErhvervUser.getDisabled(), adUser.getDisabled())) {
-								mitIdErhvervUser.setUserId(adUser.getMitIDUUID());
-								mitIdErhvervUser.setDisabled(adUser.getDisabled());
-
+					if (municipality.getUserType().equals("ACTIVE_DIRECTORY")) {
+						if (StringUtils.hasLength(adUser.getMitIDUUID())) {
+							if (mitIdErhvervUser != null) {
+								if (!Objects.equals(mitIdErhvervUser.getUserId(), adUser.getMitIDUUID()) ||
+									!Objects.equals(mitIdErhvervUser.getDisabled(), adUser.getDisabled())) {
+									mitIdErhvervUser.setUserId(adUser.getMitIDUUID());
+									mitIdErhvervUser.setDisabled(adUser.getDisabled());
+	
+									hasUsersChanged = true;
+								}
+							}
+							else {
+								sofdUsers.add(inflateMitIDErhvervUserFromAdUser(municipality, adUser));
+	
 								hasUsersChanged = true;
 							}
 						}
 						else {
-							sofdUsers.add(inflateMitIDErhvervUserFromAdUser(municipality, adUser));
-
-							hasUsersChanged = true;
-						}
-					}
-					else {
-						if (mitIdErhvervUser != null) {
-							sofdUsers.remove(mitIdErhvervUser);
-
-							hasUsersChanged = true;
+							if (mitIdErhvervUser != null) {
+								sofdUsers.remove(mitIdErhvervUser);
+	
+								hasUsersChanged = true;
+							}
 						}
 					}
 				}
 			}
-			else if (adUser.shouldSynchronizeUser(municipality.isSupportInactiveUsers())) {
+			else if (adUser.shouldSynchronizeUser(municipality)) {
 
 				// special case - they might have deleted the existing AD user, and then created it again (same UserId),
 				// in which case we get a new MasterID, but it is actually the same user
@@ -556,8 +618,10 @@ public class SyncService {
 					sofdUsers.add(inflateExchangeUserFromAdUser(user, adUser, municipality));
 				}
 
-				if (StringUtils.hasLength(adUser.getMitIDUUID())) {
-					sofdUsers.add(inflateMitIDErhvervUserFromAdUser(municipality, adUser));
+				if (municipality.getUserType().equals("ACTIVE_DIRECTORY")) {
+					if (StringUtils.hasLength(adUser.getMitIDUUID())) {
+						sofdUsers.add(inflateMitIDErhvervUserFromAdUser(municipality, adUser));
+					}
 				}
 
 				hasUsersChanged = true;
@@ -579,13 +643,6 @@ public class SyncService {
 							&& sofdUser.getUserType().equals(municipality.getEmailType())
 							&& adUsers.stream().noneMatch(adUser -> adUser.getUserId().equals(sofdUser.getMasterId())))
 					.collect(Collectors.toList());
-			
-			// filter any mitIDErhverv users created by this master that are no longer present
-			List<User> oldMitIDErhvervUsersInSofd = sofdUsers.stream()
-					.filter(sofdUser -> sofdUser.getMaster().equals(adMasterIdentifier)
-							&& sofdUser.getUserType().equals("MITID_ERHVERV")
-							&& adUsers.stream().noneMatch(adUser -> adUser.getUserId().equals(sofdUser.getMasterId())))
-					.collect(Collectors.toList());
 
 			// delete old ACTIVE_DIRECTORY accounts
 			for (User oldADUserInSofd : oldADUsersInSofd) {
@@ -598,11 +655,22 @@ public class SyncService {
 				sofdUsers.remove(oldExchangeUserInSofd);
 				hasUsersChanged = true;
 			}
-			
-			// delete old mitid erhverv accounts
-			for (User oldMitIDErhvervUserInSofd : oldMitIDErhvervUsersInSofd) {
-				sofdUsers.remove(oldMitIDErhvervUserInSofd);
-				hasUsersChanged = true;
+
+			// currently we only support reading MitID Erhverv from the ADM AD - because the user_type is global/shared,
+			// and if we do not add this, then reading from school-AD will wipe any read from adm-AD (and the reverse)
+			if (municipality.getUserType().equals("ACTIVE_DIRECTORY")) {
+				// filter any mitIDErhverv users created by this master that are no longer present
+				List<User> oldMitIDErhvervUsersInSofd = sofdUsers.stream()
+						.filter(sofdUser -> sofdUser.getMaster().equals(adMasterIdentifier)
+								&& sofdUser.getUserType().equals("MITID_ERHVERV")
+								&& adUsers.stream().noneMatch(adUser -> ("mitid-" + adUser.getUserId()).equals(sofdUser.getMasterId())))
+						.collect(Collectors.toList());
+				
+				// delete old mitid erhverv accounts
+				for (User oldMitIDErhvervUserInSofd : oldMitIDErhvervUsersInSofd) {
+					sofdUsers.remove(oldMitIDErhvervUserInSofd);
+					hasUsersChanged = true;
+				}
 			}
 		}
 
@@ -617,7 +685,7 @@ public class SyncService {
 		boolean hasAffiliationsChanged = false;
         LocalDate now = toLocalDate(new Date());
 
-		for (ADUser adUser : adUsers.stream().filter(u -> u.shouldSynchronizeUser(municipality.isSupportInactiveUsers())).collect(Collectors.toList())) {
+		for (ADUser adUser : adUsers.stream().filter(u -> u.shouldSynchronizeUser(municipality)).collect(Collectors.toList())) {
 			// if there is a corresponding (i.e. same orgunit) affiliation owned by another master,
 			// we will ignore the AD owned affiliation, as it is likely leftover data in AD, that
 			// should have been cleaned up
@@ -671,7 +739,7 @@ public class SyncService {
 		List<Affiliation> oldAffiliationsInSofd = sofdAffiliations.stream()
 				.filter(sofdAffiliation -> sofdAffiliation.getMaster().equals(adMasterIdentifier)
 						&& !sofdAffiliation.isDeleted()
-						&& adUsers.stream().noneMatch(adUser -> adUser.shouldSynchronizeUser(municipality.isSupportInactiveUsers()) && adUser.getAffiliation() != null && adUser.getObjectGuid().equals(sofdAffiliation.getMasterId())))
+						&& adUsers.stream().noneMatch(adUser -> adUser.shouldSynchronizeUser(municipality) && adUser.getAffiliation() != null && adUser.getObjectGuid().equals(sofdAffiliation.getMasterId())))
 				.collect(Collectors.toList());
 
 		for (Affiliation oldAffiliationInSofd : oldAffiliationsInSofd) {
@@ -692,7 +760,7 @@ public class SyncService {
 		User user = new User();
 		user.setUuid(UUID.randomUUID().toString());
 		user.setMaster(adMasterIdentifier);
-		user.setMasterId(adUser.getUserId());
+		user.setMasterId("mitid-" + adUser.getUserId());
 		user.setUserId(adUser.getMitIDUUID());
 		user.setDisabled(adUser.getDisabled());
 		user.setUserType("MITID_ERHVERV");
@@ -728,10 +796,9 @@ public class SyncService {
 		}
 		
 		user.setWhenCreated(adUser.getWhenCreated());
-
 		user.setEmployeeId(adUser.getEmployeeId());
-		user.setUpn(adUser.getUpn());
-		user.setTitle(adUser.getTitle());
+		user.setUpn(StringUtils.hasLength(adUser.getUpn()) ? adUser.getUpn() : null);
+		user.setTitle(StringUtils.hasLength(adUser.getTitle()) ? adUser.getTitle() : null);
 
 		return user;
 	}
@@ -854,8 +921,8 @@ public class SyncService {
 		if (StringUtils.hasLength(adUser.getDepartmentNumber())) {
 			Phone phone = new Phone();
 			phone.setMaster(adMasterIdentifier);
-			phone.setMasterId("d" + adUser.getPhone()); // department marker, for unique masterId
-			phone.setPhoneNumber(adUser.getPhone());
+			phone.setMasterId("d" + adUser.getDepartmentNumber()); // department marker, for unique masterId
+			phone.setPhoneNumber(adUser.getDepartmentNumber());
 			phone.setPhoneType("DEPARTMENT_NUMBER");
 			phone.setVisibility(Visibility.VISIBLE);
 
@@ -865,8 +932,8 @@ public class SyncService {
 		if (StringUtils.hasLength(adUser.getFaxNumber())) {
 			Phone phone = new Phone();
 			phone.setMaster(adMasterIdentifier);
-			phone.setMasterId("f" + adUser.getPhone()); // fax marker, for unique masterId
-			phone.setPhoneNumber(adUser.getPhone());
+			phone.setMasterId("f" + adUser.getFaxNumber()); // fax marker, for unique masterId
+			phone.setPhoneNumber(adUser.getFaxNumber());
 			phone.setPhoneType("FAX_NUMBER");
 			phone.setVisibility(Visibility.VISIBLE);
 
@@ -876,14 +943,16 @@ public class SyncService {
 		return phones;
 	}
 
-	private HashMap<String, List<ADUser>> buildADUserHashMap(Collection<ADUser> adUsers) {
+	private HashMap<String, List<ADUser>> buildADUserHashMap(Municipality municipality, Collection<ADUser> adUsers) {
 		HashMap<String, List<ADUser>> result = new HashMap<String, List<ADUser>>();
 		for (ADUser adUser : adUsers) {
-			if (!result.containsKey(adUser.getCpr())) {
-				result.put(adUser.getCpr(), new ArrayList<ADUser>());
+			if (!result.containsKey(adUser.getCpr(municipality))) {
+				result.put(adUser.getCpr(municipality), new ArrayList<ADUser>());
 			}
-			result.get(adUser.getCpr()).add(adUser);
+			
+			result.get(adUser.getCpr(municipality)).add(adUser);
 		}
+		
 		return result;
 	}
 

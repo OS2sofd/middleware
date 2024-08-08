@@ -16,11 +16,11 @@ public class SyncTask {
 
 	@Autowired
 	private RoleCatalogueService roleCatalogueService;
-	
+
 	@Autowired
 	private MunicipalityService municipalityService;
 
-	@Scheduled(cron = "0 0/2 5-21 * * *")
+	@Scheduled(cron = "0 0/2 5-23 * * *")
 	public void run() {
 		for (Municipality municipality : municipalityService.findAll()) {
 			// full sync every hour (or every 20 minutes if deltaSync is not enabled)

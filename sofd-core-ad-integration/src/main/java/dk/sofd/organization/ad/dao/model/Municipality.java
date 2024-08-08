@@ -63,9 +63,19 @@ public class Municipality {
 
 	@Column
 	private boolean createEmailEnabled;
+	
+	@Column
+	private boolean encodedCpr;
 
+	@Column
+	private boolean debugPatch;
+	
 	private transient String clientVersion;
 	private transient String tlsVersion;
+
+	// settings, loaded on delta if never loaded, and always on full sync
+	private transient boolean settingsFetched;
+	private transient boolean activeDirectoryEmployeeIdAssociationEnabled;
 	
 	public String getEmailType() {
 		if ("ACTIVE_DIRECTORY_SCHOOL".equals(userType)) {

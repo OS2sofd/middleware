@@ -10,6 +10,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import dk.sofd.organization.core.model.InstitutionApiRecord;
+import dk.sofd.organization.core.model.StudentApiRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -102,9 +104,19 @@ public class RoleCatalogueService {
 					}
 				}
 			}
-			
+
 			List<UserDTO> userDTOs = toDTO(personsAsList);
 			List<OrgUnitDTO> orgUnitDTOs = toDTO(orgUnits, Arrays.stream(persons).toArray(Person[]::new));
+
+			// we only deal with students and institutions on full-sync, as it would be overkill to do delta on them
+			if (municipality.isSyncStudentsFromSofd()) {
+				List<InstitutionApiRecord> institutions = coreService.getInstitutions(municipality);
+				List<StudentApiRecord> students = coreService.getStudents(municipality);
+
+				handleInstitutions(municipality, orgUnitDTOs, institutions);
+				handleStudents(userDTOs, institutions, students);
+			}
+
 			OrganisationDTO dto = new OrganisationDTO();
 			dto.setOrgUnits(orgUnitDTOs);
 			dto.setUsers(userDTOs);
@@ -119,6 +131,77 @@ public class RoleCatalogueService {
 
 			return false;
 		}
+	}
+
+	private void handleInstitutions(Municipality municipality, List<OrgUnitDTO> orgUnitDTOs, List<InstitutionApiRecord> institutions) throws Exception {
+		// find root
+		OrgUnitDTO root = orgUnitDTOs.stream().filter(o -> o.getParentOrgUnitUuid() == null).findAny().orElse(null);
+		if (root == null) {
+			throw new Exception("Failed to find root under orgUnit structure");
+		}
+
+		// create "Alle skoleelever" under root
+		OrgUnitDTO allSchoolsOU = new OrgUnitDTO();
+		allSchoolsOU.setUuid(UUID.nameUUIDFromBytes(municipality.getName().getBytes()).toString());
+		allSchoolsOU.setName("Alle skoleelever");
+		allSchoolsOU.setParentOrgUnitUuid(root.getUuid());
+		allSchoolsOU.setTitleIdentifiers(new ArrayList<>());
+
+		orgUnitDTOs.add(allSchoolsOU);
+
+		// create all institutions under "Alle skoleelever"
+		for (InstitutionApiRecord institution : institutions) {
+			OrgUnitDTO dto = new OrgUnitDTO();
+			dto.setUuid(institution.getUuid());
+			dto.setName(institution.getName());
+			dto.setParentOrgUnitUuid(allSchoolsOU.getUuid());
+			dto.setTitleIdentifiers(new ArrayList<>());
+
+			orgUnitDTOs.add(dto);
+		}
+	}
+
+	private void handleStudents(List<UserDTO> userDTOs, List<InstitutionApiRecord> institutions, List<StudentApiRecord> students) throws Exception {
+		for (StudentApiRecord student : students) {
+			boolean found = false;
+
+			for (UserDTO userDTO : userDTOs) {
+				if (Objects.equals(userDTO.getUserId(), student.getUsername())) {
+					found = true;
+					break;
+				}
+			}
+
+			if (!found) {
+				userDTOs.add(studentToUser(student, institutions));
+			}
+		}
+	}
+
+	private UserDTO studentToUser(StudentApiRecord student, List<InstitutionApiRecord> institutions) throws Exception {
+		UserDTO dto = new UserDTO();
+		dto.setSchoolUser(true);
+		dto.setExtUuid(student.getUuid());
+		dto.setName(student.getName());
+		dto.setCpr(student.getCpr());
+		dto.setUserId(student.getUsername());
+		dto.setDisabled(student.isDisabled());
+		dto.setPositions(new ArrayList<>());
+
+		for (String institutionNumber : student.getInstitutionNumbers()) {
+			InstitutionApiRecord institution = institutions.stream().filter(i -> i.getInstitutionNumber().equals(institutionNumber)).findAny().orElse(null);
+			if (institution == null) {
+				log.error("Student is affiliated to unknown institution. Skipping this institution / position. Unknown institutionNumber: " + institutionNumber);
+				continue;
+			}
+
+			PositionDTO position = new PositionDTO();
+			position.setName("Elev");
+			position.setOrgUnitUuid(institution.getUuid());
+			dto.getPositions().add(position);
+		}
+
+		return dto;
 	}
 
 	@Async
@@ -242,10 +325,10 @@ public class RoleCatalogueService {
 					dto.getPositions().add(position);
 				}
 			}
-			
+
 			dto.setKlePerforming(person.getKlePrimary());
 			dto.setKleInterest(person.getKleSecondary());
-			
+
 			result.add(dto);
 		}
 
@@ -345,7 +428,7 @@ public class RoleCatalogueService {
 			log.info("RoleCatalogue primary domain updated (" + municipality.getName() + "): " + responseDTO.toString());
 		}
 
-		if( municipality.isIncludeSchoolADUsers() )
+		if( municipality.isIncludeSchoolADUsers() || municipality.isSyncStudentsFromSofd())
 		{
 			// then do the update to school domain
 			dto.setUsers(schoolUsers);

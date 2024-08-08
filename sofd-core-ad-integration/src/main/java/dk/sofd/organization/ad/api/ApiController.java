@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import dk.sofd.organization.ad.activedirectory.ADUser;
 import dk.sofd.organization.ad.dao.model.Municipality;
 import dk.sofd.organization.ad.security.MunicipalityHolder;
+import dk.sofd.organization.ad.service.SOFDOrganizationService;
 import dk.sofd.organization.ad.service.SyncService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,12 +24,19 @@ public class ApiController {
 	@Autowired
 	private SyncService syncService;
 
+	@Autowired
+	private SOFDOrganizationService sofdService;
+
 	@PostMapping("/api/deltasync")
 	public ResponseEntity<?> deltaSync(@RequestBody List<ADUser> users, @RequestHeader(name = "ClientVersion", required = false, defaultValue = "") String clientVersion, @RequestHeader(name = "x-amzn-tls-version", required = false, defaultValue = "") String tlsVersion) {
 		try {
 			Municipality municipality = MunicipalityHolder.get();
 			municipality.setClientVersion(clientVersion);
 			municipality.setTlsVersion(tlsVersion);
+			
+			if (!municipality.isSettingsFetched()) {
+				sofdService.loadSettings(municipality);
+			}
 
 			syncService.deltaSync(users, municipality);
 		}
@@ -46,6 +54,8 @@ public class ApiController {
 			Municipality municipality = MunicipalityHolder.get();
 			municipality.setClientVersion(clientVersion);
 			municipality.setTlsVersion(tlsVersion);
+
+			sofdService.loadSettings(municipality);
 
 			syncService.fullSync(users, municipality);
 		}

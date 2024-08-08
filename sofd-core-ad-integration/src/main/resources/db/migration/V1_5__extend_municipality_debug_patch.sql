@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN debug_patch BOOL NOT NULL DEFAULT 0;

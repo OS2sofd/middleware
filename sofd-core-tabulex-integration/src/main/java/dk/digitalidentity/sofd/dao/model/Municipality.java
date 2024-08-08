@@ -1,11 +1,10 @@
-package dk.sofd.organization.dao.model;
+package dk.digitalidentity.sofd.dao.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -29,33 +28,28 @@ public class Municipality {
 	private String sofdApiKey;
 
 	@Column
-	private String roleCatalogUrl;
+	private String kommunekode;
 	
 	@Column
-	private String roleCatalogApiKey;
-
-	@Column
-	private boolean titlesEnabled;
+	private String tabulexApiKey;
 	
 	@Column
-	private boolean deltaSyncEnabled;
+	private boolean dryRun;
 	
 	@Column
-	private boolean includeUniloginUsers;
-
-	@Column(name = "include_school_ad_users")
-	private boolean includeSchoolADUsers;
+	private long daysAfterAffiliationStops;
 
 	@Column
-	private String schoolDomain;
+	private long daysBeforeAffiliationStarts;
 
 	@Column
-	private boolean syncSubstitutes;
+	private String tagName;
 	
-	@Column
-	private boolean includeNonAffiliationUsers;
-
-	@Column
-	private boolean syncStudentsFromSofd;
-
+	public String getName() {
+		if (dryRun) {
+			return name + " (dryrun)";
+		}
+		
+		return name;
+	}
 }

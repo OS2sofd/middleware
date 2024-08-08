@@ -49,6 +49,6 @@
         public Photo Photo { get; set; }
         public ICollection<PersonChild> Children { get; set; }
         public ICollection<AuthorizationCode> AuthorizationCodes{ get; set; }
-
+        public ICollection<PersonComment> Comments { get; set; }
     }
 }

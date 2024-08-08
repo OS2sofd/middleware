@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNet.OData.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.OData.Edm;
 using SOFDCore.ODataApi.Models;
 using System.Collections.Concurrent;
@@ -12,10 +13,12 @@ namespace SOFDCore.ODataApi.Configuration
     public class LimitedReadAccessODataModelBuilder
     {
         private readonly IHttpContextAccessor httpContextAccessor;
+        private readonly IConfiguration configuration;
         private ConcurrentDictionary<string, IEdmModel> modelCache = new ConcurrentDictionary<string, IEdmModel>();
-        public LimitedReadAccessODataModelBuilder(IHttpContextAccessor httpContextAccessor)
+        public LimitedReadAccessODataModelBuilder(IHttpContextAccessor httpContextAccessor, IConfiguration configuration)
         {
             this.httpContextAccessor = httpContextAccessor;
+            this.configuration = configuration;
         }
 
         public IEdmModel GetEdmModel()
@@ -49,6 +52,12 @@ namespace SOFDCore.ODataApi.Configuration
             var affiliationConfig = modelBuilder.EntitySet<Affiliation>("Affiliations").EntityType;
             var functionAssignmentsConfig = modelBuilder.EntitySet<FunctionAssignment>("FunctionAssignments").EntityType;
             var functionConfig = modelBuilder.EntitySet<Function>("Functions").EntityType;
+
+            // handle person comments
+            if (!configuration.GetValue<bool>("PersonCommentsEnabled"))
+            {
+                personConfig.Ignore(p => p.Comments);
+            }
 
             if (HasRoleClaim("LIMITED_READ_ACCESS"))
             {
@@ -112,7 +121,6 @@ namespace SOFDCore.ODataApi.Configuration
                     affiliationConfig.Ignore(a => a.WorkingHoursDenominator);
                     affiliationConfig.Ignore(a => a.WorkingHoursNumerator);
                 }
-
             }
 
             modelBuilder.Namespace = "PersonService";

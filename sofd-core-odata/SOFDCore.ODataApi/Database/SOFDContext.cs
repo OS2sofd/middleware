@@ -15,8 +15,7 @@ namespace SOFDCore.ODataApi.Database
         public virtual DbSet<AccessField> AccessFields { get; set; }
         public virtual DbSet<Function> Functions { get; set; }
 
-        public SOFDContext(DbContextOptions<SOFDContext> options)
-          : base(options)
+        public SOFDContext(DbContextOptions<SOFDContext> options) : base(options)
         { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

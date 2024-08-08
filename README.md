@@ -13,6 +13,7 @@
 - **sofd-core-oes-integration** - sends data to ØS Indsigt from OS2sofd
 - **sofd-core-os2faktor-integration** - sends data to OS2faktor from OS2sofd
 - **sofd-core-rollekatalog-integration** - sends data to OS2rollekatalog from OS2sofd
+- **sofd-core-tabulex-integration** - sends data to IST Tabulex from OS2sofd
 
 ### functionality
 - **sofd-core-sf1601-integration** - sends digital post through SF1601 on the Serviceplatform

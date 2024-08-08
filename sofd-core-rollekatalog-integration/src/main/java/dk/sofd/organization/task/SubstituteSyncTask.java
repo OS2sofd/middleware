@@ -47,11 +47,14 @@ public class SubstituteSyncTask {
 			try {
 				// read all from SOFD
 				List<SOFDSubstituteAssignment> managerSubstituteSOFD = getManagerSubstituteAssignmentsFromSOFD(municipality);
-				log.info("SOFD ManagerSubstitute assignments: " + managerSubstituteSOFD.size());
+				log.info(municipality.getName() + " : SOFD ManagerSubstitute assignments: " + managerSubstituteSOFD.size());
+
+				final List<OrgUnit> allOrgUnits = getAllOrgUnits(municipality);
+				log.info(municipality.getName() + " : SOFD OrgUnits: " + allOrgUnits.size());
 
 				// read all from RoleCatalog
 				List<ManagerRecord> managerSubstituteRC = getManagerSubstituteAssignmentsFromRoleCatalog(municipality);
-				log.info("RC ManagerSubstitute assignments: " + managerSubstituteRC.size());
+				log.info(municipality.getName() + " : RC ManagerSubstitute assignments: " + managerSubstituteRC.size());
 
 				// add
 				for (SOFDSubstituteAssignment sofdAssignment : managerSubstituteSOFD) {
@@ -63,19 +66,21 @@ public class SubstituteSyncTask {
 							.findAny()
 							.orElse(null);
 
+					List<OrgUnit> sofdConstraintOUs = sofdAssignment.getConstraintOrgUnits();
+					final List<OrgUnit> applicableOrgUnits = findApplicableOrgUnits(sofdConstraintOUs, allOrgUnits, sofdManager);
 					if (rcManager != null) {
 						// find if this sub is in the RC
 						List<SubstituteRecord> rcManagerSubstituteAssignments = rcManager.substitutes().stream()
 								.filter(ms -> ms.userId().equals(sofdSubstitute.getUserId()))
-								.collect(Collectors.toList());
+								.toList();
 
 						if (!rcManagerSubstituteAssignments.isEmpty()) {
 							// found substitute
-							List<String> sofdOrgUnits = sofdAssignment.getConstraintOrgUnits().stream().map(OrgUnit::getUuid).collect(Collectors.toList());
-							List<String> rcOrgUnits = rcManagerSubstituteAssignments.stream().map(m -> m.orgUnitUuid()).collect(Collectors.toList());
+							List<String> sofdOrgUnits = applicableOrgUnits.stream().map(OrgUnit::getUuid).toList();
+							List<String> rcOrgUnits = rcManagerSubstituteAssignments.stream().map(SubstituteRecord::orgUnitUuid).toList();
 							
-							List<String> toBeAdded = sofdOrgUnits.stream().filter(ou -> !rcOrgUnits.contains(ou)).collect(Collectors.toList());
-							List<String> toBeDeleted = rcOrgUnits.stream().filter(ou -> !sofdOrgUnits.contains(ou)).collect(Collectors.toList());
+							List<String> toBeAdded = sofdOrgUnits.stream().filter(ou -> !rcOrgUnits.contains(ou)).toList();
+							List<String> toBeDeleted = rcOrgUnits.stream().filter(ou -> !sofdOrgUnits.contains(ou)).toList();
 							
 							for (String orgUnitUuid : toBeAdded) {
 								createSubstituteInRC(municipality, sofdManager.getUserId(), sofdSubstitute.getUserId(), orgUnitUuid);
@@ -87,14 +92,14 @@ public class SubstituteSyncTask {
 						}
 						else {
 							// substitute not found in RC add
-							for (OrgUnit orgUnit : sofdAssignment.getConstraintOrgUnits()) {
+							for (OrgUnit orgUnit : applicableOrgUnits) {
 								createSubstituteInRC(municipality, sofdManager.getUserId(), sofdSubstitute.getUserId(), orgUnit.getUuid());
 							}
 						}
 					}
 					else {
 						// manager doesn't exist in RC add the assignment
-						for (OrgUnit orgUnit : sofdAssignment.getConstraintOrgUnits()) {
+						for (OrgUnit orgUnit : applicableOrgUnits) {
 							createSubstituteInRC(municipality, sofdManager.getUserId(), sofdSubstitute.getUserId(), orgUnit.getUuid());
 						}
 					}
@@ -104,14 +109,18 @@ public class SubstituteSyncTask {
 				for (ManagerRecord rcAssignment : managerSubstituteRC) {
 					List<SOFDSubstituteAssignment> sofdAssignments = managerSubstituteSOFD.stream()
 							.filter(sofd -> sofd.getManager().getUserId().equals(rcAssignment.userId()))
-							.collect(Collectors.toList());
+							.toList();
 					
 					if (!sofdAssignments.isEmpty()) {
 						for (SubstituteRecord rcManagerSubstitute : rcAssignment.substitutes()) {
 							if (sofdAssignments.stream().noneMatch(
-									sofd -> sofd.getSubstitute().getUserId().equals(rcManagerSubstitute.userId()) &&
-											sofd.getConstraintOrgUnits().stream().anyMatch(
-												ou -> ou.getUuid().equals(rcManagerSubstitute.orgUnitUuid())))) {
+									sofd -> {
+										final List<OrgUnit> sofdConstraintOUs = sofd.getConstraintOrgUnits();
+										final List<OrgUnit> applicableOrgUnits = findApplicableOrgUnits(sofdConstraintOUs, allOrgUnits, sofd.getManager());
+										return sofd.getSubstitute().getUserId().equals(rcManagerSubstitute.userId()) &&
+												applicableOrgUnits.stream().anyMatch(
+														ou -> ou.getUuid().equals(rcManagerSubstitute.orgUnitUuid()));
+									})) {
 								
 								deleteSubstituteInRC(municipality, rcAssignment.userId(), rcManagerSubstitute.userId(), rcManagerSubstitute.orgUnitUuid());
 							}
@@ -130,15 +139,26 @@ public class SubstituteSyncTask {
 		}
 	}
 
+	private static List<OrgUnit> findApplicableOrgUnits(final List<OrgUnit> sofdConstraintOUs, final List<OrgUnit> allOrgUnits,
+														final ManagerSubstitutePerson sofdManager) {
+        return (sofdConstraintOUs != null && !sofdConstraintOUs.isEmpty())
+				? sofdConstraintOUs
+				: allOrgUnits.stream()
+					.filter(ou -> ou.getManagerUuid() != null)
+					.filter(ou -> ou.getManagerUuid().equals(sofdManager.getUuid()))
+					.toList();
+	}
+
 	private void createSubstituteInRC(Municipality municipality, String managerUserId, String substituteUserId, String orgUnitUuid) throws Exception {
 		ManagerRecord body = new ManagerRecord(null, managerUserId, new ArrayList<>());
 		body.substitutes().add(new SubstituteRecord(null, substituteUserId, orgUnitUuid));
 
 		try {
+			log.info(municipality.getName() + " : creating substitute for " + managerUserId + " with substitute " + substituteUserId + " for OU " + orgUnitUuid);
 			roleCatalogueService.createSubstitute(municipality, body);
 		}
-		catch (RoleCatalogueNotFoundException notFoundException) {
-			log.warn(municipality.getName() + " : Failed to create substitute. managerUserId = " + managerUserId + ", substituteUserId=" + substituteUserId + ", orgUnitUuid=" + orgUnitUuid, notFoundException);
+		catch (Exception ex) {
+			log.warn(municipality.getName() + " : Failed to create substitute. managerUserId = " + managerUserId + ", substituteUserId=" + substituteUserId + ", orgUnitUuid=" + orgUnitUuid, ex);
 		}
 	}
 
@@ -146,7 +166,13 @@ public class SubstituteSyncTask {
 		ManagerRecord body = new ManagerRecord(null, managerUserId, new ArrayList<>());
 		body.substitutes().add(new SubstituteRecord(null, substituteUserId, orgUnitUuid));
 		
-		roleCatalogueService.deleteSubstitute(municipality, body);
+		try {
+			log.info(municipality.getName() + " : deleting substitute for " + managerUserId + " with substitute " + substituteUserId + " for OU " + orgUnitUuid);
+			roleCatalogueService.deleteSubstitute(municipality, body);
+		}
+		catch (Exception ex) {
+			log.warn(municipality.getName() + " : Failed to delete substitute. managerUserId = " + managerUserId + ", substituteUserId=" + substituteUserId + ", orgUnitUuid=" + orgUnitUuid, ex);
+		}
 	}
 
 	private List<ManagerRecord> getManagerSubstituteAssignmentsFromRoleCatalog(Municipality municipality) throws Exception {
@@ -160,4 +186,12 @@ public class SubstituteSyncTask {
 
 		return Arrays.asList(substituteAssignmentsSOFD);
 	}
+
+	private List<OrgUnit> getAllOrgUnits(Municipality municipality) {
+        try {
+            return Arrays.asList(coreService.getOrgUnits(municipality));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

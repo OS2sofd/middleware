@@ -1,5 +1,9 @@
 package dk.sofd.organization.core;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import dk.sofd.organization.core.model.InstitutionApiRecord;
+import dk.sofd.organization.core.model.StudentApiRecord;
+import dk.sofd.organization.core.model.StudentResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -7,6 +11,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,9 +23,15 @@ import dk.sofd.organization.core.model.SyncResult;
 import dk.sofd.organization.dao.model.Municipality;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 @Slf4j
 @Service
 public class CoreService {
+
+	private static final int pageSize = 1000;
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -117,6 +128,43 @@ public class CoreService {
 		}
 		
 		return response.getBody();
+	}
+
+	public List<StudentApiRecord> getStudents(Municipality municipality) throws Exception {
+		HttpEntity<HttpHeaders> request = new HttpEntity<>(getHeaders(municipality.getSofdApiKey()));
+
+		String query = "/v2/students?size=" + pageSize;
+		List<StudentApiRecord> result = new ArrayList<>();
+
+		long page = 0;
+		boolean empty = false;
+
+		do {
+			ResponseEntity<StudentResult> response = restTemplate.exchange(municipality.getSofdUrl() + query + "&page=" + page, HttpMethod.GET, request, StudentResult.class);
+			if (!response.getStatusCode().equals(HttpStatus.OK)) {
+				throw new Exception("Failed to fetch a list of students. " + response.getStatusCodeValue() + ", response=" + response.getBody());
+			}
+
+			result.addAll(response.getBody().getStudents());
+
+			empty = (response.getBody().getStudents().size() == 0);
+			page += 1;
+		}
+		while (!empty);
+
+		return result;
+	}
+
+	public List<InstitutionApiRecord> getInstitutions(Municipality municipality) throws Exception {
+		HttpEntity<HttpHeaders> request = new HttpEntity<>(getHeaders(municipality.getSofdApiKey()));
+
+		String query = "/v2/students/institutions";
+		ResponseEntity<InstitutionApiRecord[]> response = restTemplate.exchange(municipality.getSofdUrl() + query, HttpMethod.GET, request, InstitutionApiRecord[].class);
+		if (!response.getStatusCode().equals(HttpStatus.OK)) {
+			throw new Exception("Failed to fetch a list of institutions. " + response.getStatusCodeValue() + ", response=" + response.getBody());
+		}
+
+		return Arrays.asList(response.getBody());
 	}
 
 	private HttpHeaders getHeaders(String apiKey) {

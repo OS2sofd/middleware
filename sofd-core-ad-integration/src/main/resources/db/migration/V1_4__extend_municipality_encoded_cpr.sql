@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN encoded_cpr BOOL NOT NULL DEFAULT 0;

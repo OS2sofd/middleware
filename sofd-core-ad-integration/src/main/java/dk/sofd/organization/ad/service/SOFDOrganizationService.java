@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.EnableCaching;
@@ -18,11 +17,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import dk.sofd.organization.ad.dao.model.Municipality;
 import dk.sofd.organization.ad.security.MunicipalityHolder;
 import dk.sofd.organization.ad.service.model.OrgUnit;
 import dk.sofd.organization.ad.service.model.Person;
+import dk.sofd.organization.ad.service.model.PersonApiSettings;
 import dk.sofd.organization.ad.service.model.PersonsEmbedded;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +39,7 @@ public class SOFDOrganizationService {
     private RestTemplate restTemplate;
 
 	@Autowired
-	ObjectMapper objectMapper;
+	private ObjectMapper objectMapper;
 
 	public void postPhoto(String personUuid, byte[] photo) {
 		log.info(MunicipalityHolder.get().getName() + ": Posting photo for person with uuid={}", personUuid);
@@ -69,6 +71,27 @@ public class SOFDOrganizationService {
 		}
 		catch (HttpStatusCodeException ex) {
 			log.error(MunicipalityHolder.get().getName() + ": Failed to delete Photo for person with uuid " + personUuid + ", response=" + ex.getResponseBodyAsString());
+		}
+	}
+
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	public synchronized void loadSettings(Municipality municipality) {
+		// loaded - don't do it again :)
+		municipality.setSettingsFetched(true);
+
+		try {
+	        HttpEntity request = new HttpEntity(getHeaders());
+	        String query = "/v2/persons/settings";
+
+            ResponseEntity<PersonApiSettings> response = restTemplate.exchange(getUrl() + query, HttpMethod.GET, request, PersonApiSettings.class);
+            if (response.getStatusCodeValue() == 200) {
+            	municipality.setActiveDirectoryEmployeeIdAssociationEnabled(response.getBody().isActiveDirectoryEmployeeIdAssociationEnabled());
+
+            	log.info("Settings loaded for " + municipality.getName());
+            }
+		}
+		catch (Exception ex) {
+			log.warn("Failed to load settings for " + municipality.getName() + " / reason = " + ex.getMessage());
 		}
 	}
 
@@ -217,5 +240,4 @@ public class SOFDOrganizationService {
     private String getUrl() {
         return MunicipalityHolder.get().getSofdUrl();
     }
-
 }
