@@ -91,7 +91,7 @@ public class OpusFileParserService {
 			
 			try {
 				String newestOpusFile = s3Service.getNewestFilename(municipality, "opus");
-
+				
 				Map<Object, Object> lastFiles = persistentMap.get(lastFilesPath);
 				Object lastOpusFileName = lastFiles.get(municipality.getName() + ".opus");
 
@@ -128,7 +128,7 @@ public class OpusFileParserService {
 					// map users and update them
 					List<Employee> employees = kmd.getEmployee().stream().filter(e -> !"leave".equals(e.getAction())).collect(Collectors.toList());
 					log.info("Performing update on Persons: " + employees.size() + " for " + municipality.getName());
-					List<Person> updatedPerson = executePersons(employees, orgUnits, municipality, filterRules, (map.size() > 0), kmd.getOrgUnit());
+					List<Person> updatedPerson = executePersons(employees, orgUnits, municipality, filterRules, kmd.getOrgUnit());
 
 					// update extra affiliations
 					if (map.size() > 0) {
@@ -279,7 +279,7 @@ public class OpusFileParserService {
 		}
 	}
 
-	private List<Person> executePersons(List<Employee> employees, List<dk.sofd.opus.service.model.OrgUnit> orgUnits, Municipality municipality, OpusFilterRulesDTO filterRules, boolean reload, List<dk.kmd.opus.OrgUnit> losUnits) throws Exception {
+	private List<Person> executePersons(List<Employee> employees, List<dk.sofd.opus.service.model.OrgUnit> orgUnits, Municipality municipality, OpusFilterRulesDTO filterRules, List<dk.kmd.opus.OrgUnit> losUnits) throws Exception {
 				
 		// merge Employee records
 		List<Person> opusPersons = mergeEmployeeRecords(municipality, employees, orgUnits, filterRules, losUnits);
@@ -291,7 +291,7 @@ public class OpusFileParserService {
 		List<Person> personsToBeCreated = findPersonsToBeCreated(opusPersons, persons);
 
 		// find all persons that should be updated
-		List<Person> personsToBeUpdated = findPersonsToBeUpdated(opusPersons, persons, filterRules);
+		List<Person> personsToBeUpdated = findPersonsToBeUpdated(opusPersons, persons, filterRules, municipality);
 
 		// find all persons that should be "deleted"
 		List<Person> personsToBeDeleted = findPersonsToBeDeleted(opusPersons, persons);
@@ -303,12 +303,28 @@ public class OpusFileParserService {
 		createPersonsInSOFDCore(personsToBeCreated, municipality);
 		updatePersonsInSOFDCore(personsToBeUpdated, municipality);
 
-		// fetch fresh data from SOFD, and return
-		if (reload) {
-			return sofdCoreStub.getPersons(municipality);
+		var updatedPersons = sofdCoreStub.getPersons(municipality);
+
+		// find managers
+		List<SofdCoreStub.OrgUnitManagerDto> managers = new ArrayList<>();
+		for(var employee : employees.stream().filter(e -> e.isIsManager() != null && e.isIsManager() == true).toList()) {
+			var matchingSofdPerson = persons.stream().filter(p -> !p.isDeleted() && p.getCpr().equalsIgnoreCase(employee.getCpr().getValue())).findFirst().orElse(null);
+			
+			if( matchingSofdPerson != null ) {
+				var matchingSofdAffiliation = matchingSofdPerson.onlyActiveAffiliations().stream().filter
+						(a -> a.getMaster().equalsIgnoreCase(opusMasterIdentifier) && a.getMasterId().equalsIgnoreCase(Integer.toString(employee.getId()))).findFirst().orElse(null);
+				
+				if (matchingSofdAffiliation != null) {
+					managers.add(new SofdCoreStub.OrgUnitManagerDto(matchingSofdAffiliation.getOrgUnitUuid(),matchingSofdPerson.getUuid()));
+				}
+			}
 		}
 
-		return null;
+		// perform manager update
+		log.info("Importing " + managers.size() + " managers to SOFD for " + municipality.getName());
+		sofdCoreStub.updateManagers(managers, municipality);
+
+		return updatedPersons;
 	}
 
 	private void updatePersonsInSOFDCore(List<Person> personsToBeUpdated, Municipality municipality) throws Exception {
@@ -367,7 +383,7 @@ public class OpusFileParserService {
 
 			// does the SOFD person has any open OPUS affiliations?
 			for (Affiliation affiliation : person.getAffiliations()) {
-				if (affiliation.getMaster().equals(opusMasterIdentifier)) {
+				if (affiliation.getMaster().equals(opusMasterIdentifier) || affiliation.getMaster().equals(opusManagerMasterIdentifier) ) {
 					if (affiliation.getStopDate() == null || (affiliation.getStopDate().length() >= 10 && LocalDate.parse(affiliation.getStopDate().substring(0, 10)).isAfter(now))) {
 						// person does not exist in OPUS, but SOFD think there is an open affiliation,
 						// so we set a stop date to ensure the Person is correctly cleaned up (if needed) by SOFD.
@@ -388,7 +404,7 @@ public class OpusFileParserService {
 
 			// end all open affiliations (should not be needed, but this is a catch all)
 			for (Affiliation affiliation : candidate.getAffiliations()) {
-				if (affiliation.getMaster().equals(opusMasterIdentifier)) {
+				if (affiliation.getMaster().equals(opusMasterIdentifier) || affiliation.getMaster().equals(opusManagerMasterIdentifier) ) {
 					if (affiliation.getStopDate() == null || (affiliation.getStopDate().length() >= 10 && LocalDate.parse(affiliation.getStopDate().substring(0, 10)).isAfter(now))) {
 						affiliation.setStopDate(now.toString());
 					}
@@ -399,7 +415,7 @@ public class OpusFileParserService {
 		return toBeDeleted;
 	}
 
-	private List<Person> findPersonsToBeUpdated(List<Person> opusPersons, List<Person> persons, OpusFilterRulesDTO rules) throws IOException {
+	private List<Person> findPersonsToBeUpdated(List<Person> opusPersons, List<Person> persons, OpusFilterRulesDTO rules, Municipality municipality) throws IOException {
 		List<Person> toBeUpdated = new ArrayList<>();
 
 		for (Person opusPerson : opusPersons) {
@@ -439,6 +455,16 @@ public class OpusFileParserService {
 					}
 					*/
 					toBeUpdated.add(sofdPerson);
+				}
+				// todo: temporary support for old manager code:
+				else if( !sofdCoreStub.isManagerMigrated(municipality) ) {
+					// to support the old manager code, we need to check if managerForUuids differ - because they are excluded from the equals method in the above if-statement
+					for( var affiliation : sofdPerson.getAffiliations() ) {
+						var originalAffiliation = originalSofdPerson.getAffiliations().stream().filter(a -> a.getUuid().equalsIgnoreCase(affiliation.getUuid())).findFirst().orElse(null);
+						if( originalAffiliation == null || !originalAffiliation.getManagerForUuids().equals(affiliation.getManagerForUuids())) {
+							toBeUpdated.add(sofdPerson);
+						}
+					}
 				}
 			}
 		}

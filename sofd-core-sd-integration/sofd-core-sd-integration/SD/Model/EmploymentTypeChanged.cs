@@ -1,44 +1,88 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 
 namespace GetEmploymentChanged
 {
     public partial class EmploymentType
     {
-        public EmploymentDepartmentType EmploymentDepartmentType
+        public EmploymentDepartmentType MostRecentDepartmentChange
         { 
             get 
             {
-                return Items?.OfType<EmploymentDepartmentType>().LastOrDefault();
-            }
-        }
-        public ProfessionType ProfessionType
-        {
-            get
-            {
-                return Items?.OfType<ProfessionType>().LastOrDefault();
-            }
-        }
-        public EmploymentStatusType EmploymentStatusType
-        {
-            get
-            {
-                return Items?.OfType<EmploymentStatusType>().LastOrDefault();
-            }
-        }
-        public SalaryAgreementType SalaryAgreementType
-        {
-            get
-            {
-                return Items?.OfType<SalaryAgreementType>().LastOrDefault();
-            }
-        }
-        public WorkingTimeType WorkingTimeType
-        {
-            get
-            {
-                return Items?.OfType<WorkingTimeType>().LastOrDefault();
+                return Items?.OfType<EmploymentDepartmentType>().Where(i => i.ActivationDate <= DateTime.Now).OrderBy(i => i.ActivationDate).LastOrDefault();
             }
         }
 
+        public EmploymentDepartmentType NearestFutureDepartmentChange
+        {
+            get
+            {
+                return Items?.OfType<EmploymentDepartmentType>().Where(i => i.ActivationDate > DateTime.Now).OrderBy(i => i.ActivationDate).FirstOrDefault();
+            }
+        }
+
+        public ProfessionType MostRecentProfessionChange
+        {
+            get
+            {
+                return Items?.OfType<ProfessionType>().Where(i => i.ActivationDate <= DateTime.Now).OrderBy(i => i.ActivationDate).LastOrDefault();
+            }
+        }
+
+        public ProfessionType NearestFutureProfessionChange
+        {
+            get
+            {
+                return Items?.OfType<ProfessionType>().Where(i => i.ActivationDate > DateTime.Now).OrderBy(i => i.ActivationDate).FirstOrDefault();
+            }
+        }
+
+        public EmploymentStatusType MostRecentEmploymentStatusChange
+        {
+            get
+            {
+                return Items?.OfType<EmploymentStatusType>().Where(i => i.ActivationDate <= DateTime.Now).OrderBy(i => i.ActivationDate).LastOrDefault();
+            }
+        }
+
+        public EmploymentStatusType NearestFutureEmploymentStatusChange
+        {
+            get
+            {
+                return Items?.OfType<EmploymentStatusType>().Where(i => i.ActivationDate > DateTime.Now).OrderBy(i => i.ActivationDate).FirstOrDefault();
+            }
+        }
+
+        public SalaryAgreementType MostRecentSalaryAgreementChange
+        {
+            get
+            {
+                return Items?.OfType<SalaryAgreementType>().Where(i => i.ActivationDate <= DateTime.Now).OrderBy(i => i.ActivationDate).LastOrDefault();
+            }
+        }
+
+        public SalaryAgreementType NearestFutureSalaryAgreementChange
+        {
+            get
+            {
+                return Items?.OfType<SalaryAgreementType>().Where(i => i.ActivationDate > DateTime.Now).OrderBy(i => i.ActivationDate).FirstOrDefault();
+            }
+        }
+
+        public WorkingTimeType MostRecentWorkingTimeChange
+        {
+            get
+            {
+                return Items?.OfType<WorkingTimeType>().Where(i => i.ActivationDate <= DateTime.Now).OrderBy(i => i.ActivationDate).LastOrDefault();
+            }
+        }
+
+        public WorkingTimeType NearestFutureWorkingTimeChange
+        {
+            get
+            {
+                return Items?.OfType<WorkingTimeType>().Where(i => i.ActivationDate > DateTime.Now).OrderBy(i => i.ActivationDate).FirstOrDefault();
+            }
+        }
     }
 }

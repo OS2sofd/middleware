@@ -57,6 +57,16 @@ public class SyncService {
 
 		log.info("Starting full sync for: " + municipality.getName());
 
+		if (adUsers.size() > municipality.getFullSyncUpperBound()) { 
+			log.error("Full Sync rejected for " + municipality.getName() + " because " + adUsers.size() + " > " + municipality.getFullSyncUpperBound());
+			return;
+		}
+
+		if (adUsers.size() < municipality.getFullSyncLowerBound()) { 
+			log.error("Full Sync rejected for " + municipality.getName() + " because " + adUsers.size() + " < " + municipality.getFullSyncLowerBound());
+			return;
+		}
+
 		try {
 			if (municipality.isAzureLookupEnabled()) {
 				Map<String, AzureUser> azureUsers = azureAdService.fetchAllAzureUsers(municipality);
@@ -466,7 +476,7 @@ public class SyncService {
 							     u.getUserType().equals(municipality.getUserType()) &&
 							     u.getMasterId().equals(municipality.getMasterIdPrefix() + adUser.getObjectGuid()))
 					.findFirst();
-
+			
 			if (matchingSofdUser.isPresent()) {
 				User sofdUser = matchingSofdUser.get();
 
@@ -488,12 +498,11 @@ public class SyncService {
 	
 					mitIdErhvervUser = matchingMitIDErhvervUser.isPresent() ? matchingMitIDErhvervUser.get() : null;
 				}
-				
+
 				User emailUser = null;
 				if (municipality.isCreateEmailEnabled()) {
 					emailUser = matchingEmailUser.isPresent() ? matchingEmailUser.get() : null;
 				}
-
 
 				if (!adUser.shouldSynchronizeUser(municipality)) {
 					sofdUsers.remove(sofdUser);
@@ -659,6 +668,7 @@ public class SyncService {
 			// currently we only support reading MitID Erhverv from the ADM AD - because the user_type is global/shared,
 			// and if we do not add this, then reading from school-AD will wipe any read from adm-AD (and the reverse)
 			if (municipality.getUserType().equals("ACTIVE_DIRECTORY")) {
+
 				// filter any mitIDErhverv users created by this master that are no longer present
 				List<User> oldMitIDErhvervUsersInSofd = sofdUsers.stream()
 						.filter(sofdUser -> sofdUser.getMaster().equals(adMasterIdentifier)
@@ -837,10 +847,31 @@ public class SyncService {
 					patchUsers = true;
 				}
 				else if (user.getUserType().equals("MITID_ERHVERV")) {
-					patchUsers = true;
+					boolean keepIt = false;
+					
+					for (User adUser : person.getUsers()) {
+						// only look at the right type of AD user
+						if (adUser.getUserType().equalsIgnoreCase(municipality.getUserType())) {
+							continue;
+						}
+						
+						// the userId of the AD account should match the masterId of the MitID account (plus some mitid- prefix on the AD side)
+						if (!("mitid-" + adUser.getUserId()).equals(user.getMasterId())) {
+							continue;
+						}
+						
+						keepIt = true;
+					}
+					
+					if (keepIt) {
+						nonADUsers.add(user);
+					}
+					else {
+						patchUsers = true;
+					}
 				}
 				else {
-					// should not really happen though....
+					// master is AD, but not one of the above - we keep those (even though it should never happen)
 					nonADUsers.add(user);
 				}
 			}

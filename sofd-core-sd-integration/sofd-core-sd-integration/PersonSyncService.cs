@@ -27,6 +27,8 @@ namespace sofd_core_sd_integration
         private Dictionary<string, string> sofdOrgUnitTags = new Dictionary<string, string>();
         private List<Person> sofdPersons;
 
+        // specifies how far into the future we want to check for changes
+        private readonly DateTime lookAhead = DateTime.Now.AddMonths(3);
 
         public PersonSyncService(IServiceProvider sp) : base(sp)
         {
@@ -35,13 +37,13 @@ namespace sofd_core_sd_integration
             databaseContext = sp.GetService<DatabaseContext>();
         }
 
-        public void Synchronize()
+        public void Synchronize(Dictionary<string, string> sdManagerMap)
         {
             try
             {
                 if (!appSettings.EmployeeSyncEnabled)
                 {
-                    logger.LogWarning("PersonSyncService not enabled");
+                    logger.LogInformation("PersonSyncService not enabled");
                     return;
                 }
                 logger.LogInformation("PersonSyncService executing");
@@ -63,9 +65,13 @@ namespace sofd_core_sd_integration
                     }
                 }
                 SynchronizePersonsToSOFD();
-                if (appSettings.FunctionSyncEnabled)
+                //if (appSettings.FunctionSyncEnabled)
+                //{
+                //    SynchronizeFunctionsToSOFD();
+                //}
+                if (appSettings.SynchronizeManagerFromSDEnabled)
                 {
-                    SynchronizeFunctionsToSOFD();
+                    SynchronizeManagerFromSD(sdManagerMap);
                 }
                 logger.LogInformation("PersonSyncService finsihed");
             }
@@ -75,85 +81,109 @@ namespace sofd_core_sd_integration
             }
         }
 
-        private void SynchronizeFunctionsToSOFD()
+        //private void SynchronizeFunctionsToSOFD()
+        //{
+        //    var sdOrgFunctions = sdService.GetOrgFunctions();
+        //    sofdPersons = sofdService.GetPersons();
+        //    var dbOrgUnits = databaseContext.DBOrgUnits.ToArray();
+        //    var managerMap = new Dictionary<string, Manager>();
+        //    foreach (var sdOrgFunction in sdOrgFunctions)
+        //    {
+        //        var sofdUuid = dbOrgUnits.Where(o => o.VirtualUuid == sdOrgFunction.uuid).Select(o => o.SofdUuid).SingleOrDefault();
+        //        if (sofdUuid == null)
+        //        {
+        //            continue;
+        //        }
+        //        var managerPerson = sdOrgFunction.orgFunktioner.Where(of => of.klasseNavn == "SD - Leder" && of.start <= DateTime.Now.Date && of.slut >= DateTime.Now.Date).FirstOrDefault()?.personer.FirstOrDefault();
+        //        if (managerPerson != null)
+        //        {
+        //            var sofdPerson = sofdPersons.Where(p => p.Cpr == managerPerson.brugervendtNoegle).FirstOrDefault();
+        //            if (sofdPerson == null)
+        //            {
+        //                logger.LogWarning($"Manager {managerPerson.navn} ({Helper.FormatCprForLog(managerPerson.brugervendtNoegle)}) for {sdOrgFunction.navn} could not be found in SOFD");
+        //                continue;
+        //            }
+        //            var manager = new Manager();
+        //            manager.Name = sofdPerson.GetName();
+        //            manager.Uuid = sofdPerson.Uuid;
+        //            manager.Inherited = false;
+        //            managerMap.Add(sofdUuid, manager);
+        //        }
+        //    }
+        //    var sofdRoot = sofdOrgUnits.Where(o => o.ParentUuid == null).Single();
+        //    AddManagerRecursive(sofdRoot, managerMap, null);
+        //}
+
+        private void SynchronizeManagerFromSD(Dictionary<string, string> sdManagerMap)
         {
-            var sdOrgFunctions = sdService.GetOrgFunctions();
             sofdPersons = sofdService.GetPersons();
-            var dbOrgUnits = databaseContext.DBOrgUnits.ToArray();
-            var managerMap = new Dictionary<string, Manager>();
-            foreach (var sdOrgFunction in sdOrgFunctions)
+            var managers = new List<OrgUnitManagerDto>();
+            foreach (var sdOrgUnitUuid in sdManagerMap.Keys)
             {
-                var sofdUuid = dbOrgUnits.Where(o => o.VirtualUuid == sdOrgFunction.uuid).Select(o => o.SofdUuid).SingleOrDefault();
-                if (sofdUuid == null)
+                if (!sofdOrgUnits.Any(o => o.Uuid == sdOrgUnitUuid))
                 {
+                    logger.LogInformation($"Not adding manager for sd orgunit uuid {sdOrgUnitUuid} because no corresponding sofd orgunit was found");
                     continue;
                 }
-                var managerPerson = sdOrgFunction.orgFunktioner.Where(of => of.klasseNavn == "SD - Leder" && of.start <= DateTime.Now.Date && of.slut >= DateTime.Now.Date).FirstOrDefault()?.personer.FirstOrDefault();
-                if (managerPerson != null)
+                var sofdPerson = sofdPersons.Where(p => p.Affiliations.Any(a => a.isActive() && a.EmployeeId == sdManagerMap[sdOrgUnitUuid])).FirstOrDefault();
+                if (sofdPerson == null)
                 {
-                    var sofdPerson = sofdPersons.Where(p => p.Cpr == managerPerson.brugervendtNoegle).FirstOrDefault();
-                    if (sofdPerson == null)
+                    logger.LogInformation($"Not adding manager for sd orgunit uuid {sdOrgUnitUuid} because no active affiliation was found with employeeId {sdManagerMap[sdOrgUnitUuid]}");
+                }
+                else
+                {
+                    var newManager = new OrgUnitManagerDto();
+                    newManager.orgunitUuid = sdOrgUnitUuid;
+                    newManager.managerUuid = sofdPerson.Uuid;
+                    if (managers.Any(m => m.orgunitUuid == newManager.orgunitUuid) )
                     {
-                        logger.LogWarning($"Manager {managerPerson.navn} ({Helper.FormatCprForLog(managerPerson.brugervendtNoegle)}) for {sdOrgFunction.navn} could not be found in SOFD");
-                        continue;
+                        logger.LogInformation($"Not adding {newManager.managerUuid} as manager because orgunit with uuid {sdOrgUnitUuid} already has a manager");
                     }
-                    var manager = new Manager();
-                    manager.Name = sofdPerson.GetName();
-                    manager.Uuid = sofdPerson.Uuid;
-                    manager.Inherited = false;
-                    managerMap.Add(sofdUuid, manager);
+                    else
+                    {
+                        managers.Add(newManager);
+                    }
                 }
             }
-            var sofdRoot = sofdOrgUnits.Where(o => o.ParentUuid == null).Single();
-            AddManagerRecursive(sofdRoot, managerMap, null);
-        }
-
-        private void AddManagerRecursive(OrgUnit parent, Dictionary<string, Manager> managerMap, Manager parentManager)
-        {
-            managerMap.TryGetValue(parent.Uuid, out var sdManager);
-            if (sdManager == null && parentManager != null)
-            {
-                sdManager = parentManager;
-                sdManager.Inherited = true;
-            }
-            if (parent.Manager != null && sdManager == null)
-            {
-                logger.LogDebug($"Deleting manager for {parent.Name}");
-                sofdService.ClearManager(parent);
-            }
-            else if (!Object.Equals(parent.Manager, sdManager))
-            {
-                logger.LogDebug($"Updating manager on {parent.Name}: {sdManager.Name}");
-                var orgUnitWithManager = new OrgUnit();
-                orgUnitWithManager.Uuid = parent.Uuid;
-                orgUnitWithManager.Manager = sdManager;
-                sofdService.UpdateOrgUnit(orgUnitWithManager);
-            }
-            foreach (var child in sofdOrgUnits.Where(o => o.ParentUuid == parent.Uuid))
-            {
-                AddManagerRecursive(child, managerMap, sdManager);
-            }
+            sofdService.UpdateManagers(managers);
         }
 
         private void SynchronizePersonsToSOFD()
         {
             // handle manually added fullsync persons
             var fullSyncPersons = databaseContext.FullSyncPersons;
+            var now = DateTime.Now;
             if (fullSyncPersons.Count() > 0)
             {
                 sofdPersons = sofdService.GetPersons();
+                var sdOrgUnitDict = new Dictionary<string, List<SDOrgUnit>>();
+                var sdProfessionDict = new Dictionary<string, Dictionary<string, SDProfession>>();
                 foreach (var person in databaseContext.FullSyncPersons)
                 {
                     foreach (var institution in appSettings.SDSettings.Institutions)
                     {
                         List<SDOrgUnit> sdOrgUnits = null;
-                        if (!institution.Prime || appSettings.EmployeeSyncUseTags ) {
-                            sdOrgUnits = sdService.GetOrgUnits(institution.Identifier);
+                        Dictionary<string, SDProfession> sdProfessions = null;
+                        if (sdOrgUnitDict.ContainsKey(institution.Identifier))
+                        {
+                            sdOrgUnits = sdOrgUnitDict[institution.Identifier];
                         }
+                        else {
+                            sdOrgUnits = sdService.GetOrgUnits(institution.Identifier);
+                            sdOrgUnitDict.Add(institution.Identifier, sdOrgUnits);
+                        }
+                        if (sdProfessionDict.ContainsKey(institution.Identifier))
+                        {
+                            sdProfessions = sdProfessionDict[institution.Identifier];
+                        }
+                        else
+                        {
+                            sdProfessions = sdService.GetProfessions(institution.Identifier);
+                            sdProfessionDict.Add(institution.Identifier, sdProfessions);
+                        }                                                
                         logger.LogInformation($"Performing Manual Full Sync For cpr {Helper.FormatCprForLog(person.Cpr)} in institution {institution.Identifier}");
-                        FullSynchronizeForInstitution(institution, sdOrgUnits, person.Cpr);
-                        logger.LogInformation($"Performing Manual Future Delta Sync For cpr {Helper.FormatCprForLog(person.Cpr)} in institution {institution.Identifier}");
-                        DeltaSynchronizeForInstitution(institution, sdOrgUnits, DateTime.Now.AddDays(-30), DateTime.Now, true, person.Cpr);
+                        FullSynchronizeForInstitution(institution, sdOrgUnits, sdProfessions, person.Cpr);
+                        DeltaSynchronizeForInstitution(institution, sdOrgUnits, sdProfessions, now, lookAhead, person.Cpr);
                     }
                     databaseContext.FullSyncPersons.Remove(person);
                 }
@@ -166,47 +196,43 @@ namespace sofd_core_sd_integration
             if (isFullSync)
             {
                 sofdPersons = sofdService.GetPersons();
-                syncInfo = new SynchronizeInfo { PersonsLastSync = DateTime.Now };
+                syncInfo = new SynchronizeInfo { PersonsLastSync = now };
                 databaseContext.Add(syncInfo);
                 foreach (var institution in appSettings.SDSettings.Institutions)
                 {
                     List<SDOrgUnit> sdOrgUnits = null;
-                    if (!institution.Prime || appSettings.EmployeeSyncUseTags)
-                    {
-                        sdOrgUnits = sdService.GetOrgUnits(institution.Identifier);
-                    }
+                    sdOrgUnits = sdService.GetOrgUnits(institution.Identifier);
+                    var sdProfessions = sdService.GetProfessions(institution.Identifier);
                     fullSDPersons.AddRange(sdService.GetPersons(institution.Identifier));
                     logger.LogInformation($"Performing Full Sync for institution {institution}");
-                    FullSynchronizeForInstitution(institution,sdOrgUnits);
+                    FullSynchronizeForInstitution(institution,sdOrgUnits, sdProfessions);
+                    DeltaSynchronizeForInstitution(institution, sdOrgUnits, sdProfessions, now, lookAhead);
                 }
             }
             else
             {
+                sofdPersons = sofdService.GetPersons();
                 var changedFrom = syncInfo.PersonsLastSync;
-                var changedTo = DateTime.Now;
 
                 foreach (var institution in appSettings.SDSettings.Institutions)
                 {
                     List<SDOrgUnit> sdOrgUnits = null;
-                    if (!institution.Prime || appSettings.EmployeeSyncUseTags)
-                    {
-                        sdOrgUnits = sdService.GetOrgUnits(institution.Identifier);
-                    }
+                    sdOrgUnits = sdService.GetOrgUnits(institution.Identifier);
+                    var sdProfessions = sdService.GetProfessions(institution.Identifier);
                     logger.LogInformation($"Performing Delta Sync for institution {institution.Identifier}");
-                    DeltaSynchronizeForInstitution(institution,sdOrgUnits, changedFrom, changedTo,false, null);
-                    logger.LogInformation($"Performing Future Delta Sync for institution {institution.Identifier}");
-                    DeltaSynchronizeForInstitution(institution,sdOrgUnits, changedFrom, changedTo,true, null);
+                    DeltaSynchronizeForInstitution(institution,sdOrgUnits, sdProfessions, changedFrom.AddMonths(-2), lookAhead);
                 }
-                syncInfo.PersonsLastSync = changedTo;
+                syncInfo.PersonsLastSync = now;
             }
             databaseContext.SaveChanges();
         }
 
-        private void FullSynchronizeForInstitution(Institution institution, List<SDOrgUnit> sdOrgUnits, string cpr = null)
+        private void FullSynchronizeForInstitution(Institution institution, List<SDOrgUnit> sdOrgUnits, Dictionary<string, SDProfession> sdProfessions, string cpr = null)
         {
             try
             {
                 var master = appSettings.SOFDSettings.MasterPrefix + institution.Identifier;
+
                 var sdPersons = sdService.GetAllEmployments(institution.Identifier, null, cpr);
                 var missingSDOrgUnitUUIDs = new HashSet<string>();
                 foreach (var sdPerson in sdPersons)
@@ -232,7 +258,7 @@ namespace sofd_core_sd_integration
                             sofdPerson.Cpr = fullSDPerson.PersonCivilRegistrationIdentifier;
                             sofdPerson.Firstname = fullSDPerson.PersonGivenName;
                             sofdPerson.Surname = fullSDPerson.PersonSurnameName;
-                            if (sdPerson.HasValidAddress())
+                            if (appSettings.PrivateAddressEnabled && sdPerson.HasValidAddress())
                             {
                                 sofdPerson.RegisteredPostAddress = new PostAddress
                                 {
@@ -251,6 +277,16 @@ namespace sofd_core_sd_integration
                             // if instititution is not the prime institution, we prefix the employmentidentifier to prevent duplicates
                             var employmentMasterId = institution.Prime ? sdEmployment.EmploymentIdentifier : institution.Identifier + "-" + sdEmployment.EmploymentIdentifier;
 
+                            // delete this employment from any other sofd person (SD can delete an employment id and reuse it on other persons /cry)
+                            var badSOFDPersons = sofdPersons.Where(p => p.Uuid != sofdPerson.Uuid && p.Affiliations.Any(e => e.Master == master && e.MasterId == employmentMasterId));
+                            foreach (var badSOFDPerson in badSOFDPersons)
+                            {
+                                logger.LogWarning($"Removing affiliation with masterId {employmentMasterId} from person with uuid {badSOFDPerson.Uuid} because it was used on another person");
+                                badSOFDPerson.Affiliations.RemoveAll(e => e.Master == master && e.MasterId == employmentMasterId);
+                                sofdService.UpdatePerson(badSOFDPerson);
+                            }
+
+                            // continue normal sync logic
                             var sofdAffiliation = sofdPerson.Affiliations.Where(e => e.Master == master && e.MasterId == employmentMasterId).SingleOrDefault();
                             if (sofdAffiliation == null)
                             {
@@ -269,7 +305,26 @@ namespace sofd_core_sd_integration
                                 sofdPerson.FirstEmploymentDate = sdEmployment.StartDate;
                             }
                             sofdAffiliation.PositionId = sdEmployment.JobPositionIdentifier;
-                            sofdAffiliation.PositionName = String.IsNullOrEmpty(sdEmployment.EmploymentName) ? "Ukendt" : sdEmployment.EmploymentName;
+
+                            if (!String.IsNullOrEmpty(sdEmployment.EmploymentName)) // first check if it has an EmploymentName
+                            {
+                                sofdAffiliation.PositionName = sdEmployment.EmploymentName;
+                            }
+                            else if (appSettings.JobPositionMap.ContainsKey(sdEmployment.JobPositionIdentifier)) // check if we have a mapping for this positionid
+                            {
+                                sofdAffiliation.PositionName = appSettings.JobPositionMap[sdEmployment.JobPositionIdentifier];
+                            }
+                            else if (String.IsNullOrEmpty(sofdAffiliation.PositionName)) // set some fallbacks if affiliation has no value yet
+                            {
+                                if (sdProfessions.ContainsKey(sdEmployment.JobPositionIdentifier)) // fallback to position name
+                                {
+                                    sofdAffiliation.PositionName = sdProfessions[sdEmployment.JobPositionIdentifier].Name;
+                                }
+                                else
+                                {
+                                    sofdAffiliation.PositionName = "Ukendt";
+                                }
+                            }
                             sofdAffiliation.EmploymentTerms = sdEmployment.GetOPUSEmploymentTermsId();
                             sofdAffiliation.EmploymentTermsText = sdEmployment.GetOPUSEmploymentTermsText();
                             sofdAffiliation.PayGrade = sdEmployment.SalaryClassIdentifier;
@@ -280,8 +335,15 @@ namespace sofd_core_sd_integration
                             {
                                 occupationHours = appSettings.PositionOccupationHoursMap[sofdAffiliation.PositionId];
                             }
-                            sofdAffiliation.WorkingHoursNumerator = Math.Round(occupationHours * (sdEmployment.OccupationRate ?? 1), 2);
-                            sofdAffiliation.WorkingHoursDenominator = occupationHours;
+                            var sdNumerator = Math.Round(occupationHours * (sdEmployment.OccupationRate ?? 1), 2);
+                            if (sofdAffiliation.WorkingHoursNumerator != sdNumerator)
+                            {
+                                sofdAffiliation.WorkingHoursNumerator = sdNumerator;
+                            }
+                            if (sofdAffiliation.WorkingHoursDenominator != occupationHours)
+                            {
+                                sofdAffiliation.WorkingHoursDenominator = occupationHours;
+                            }
                             if (appSettings.EmployeeSyncUseTags)
                             {
                                 // setting orgunit uuid based on Tags in SOFD core
@@ -299,17 +361,31 @@ namespace sofd_core_sd_integration
                                 else
                                 {
                                     missingSDOrgUnitUUIDs.Add(sdOrgunit.Uuid);
-                                    logger.LogInformation($"Not importing affiliation {sofdAffiliation.PositionName} for person with Uuid {sofdPerson.Uuid} and Cpr {Helper.FormatCprForLog(sofdPerson.Cpr)} because no tag was found in SOFD.");                                    
+                                    logger.LogInformation($"Not importing affiliation {sofdAffiliation.PositionName} for person with Uuid {sofdPerson.Uuid} and Cpr {Helper.FormatCprForLog(sofdPerson.Cpr)} because no tag was found in SOFD.");
                                     sofdPerson.Affiliations.Remove(sofdAffiliation);
                                     continue;
                                 }
                             }
                             else
                             {
-                                // setting orgunit uuid to the same af department uuid in SD
+                                // setting orgunit uuid to the same af department uuid or to a parent orgunit uuid if not found
                                 if (institution.Prime)
                                 {
-                                    sofdAffiliation.OrgUnitUuid = sdEmployment.DepartmentUUIDIdentifier;
+                                    var currentUuid = sdEmployment.DepartmentUUIDIdentifier;
+                                    while (currentUuid != null)
+                                    {
+                                        var sofdOrgUnit = sofdOrgUnits.Where(o => o.Uuid == currentUuid && !o.Deleted).FirstOrDefault();
+                                        if (sofdOrgUnit != null)
+                                        {
+                                            sofdAffiliation.OrgUnitUuid = sofdOrgUnit.Uuid;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            // find uuid of parent
+                                            currentUuid = sdOrgUnits.Where(o => o.Uuid == currentUuid).FirstOrDefault()?.ParentUuid;
+                                        }
+                                    }
                                 }
                                 else
                                 {
@@ -335,7 +411,10 @@ namespace sofd_core_sd_integration
                                     }
                                     else
                                     {
-                                        missingSDOrgUnitUUIDs.Add(sdOrgUnit.Uuid);
+                                        if( sdOrgUnit != null )
+                                        {
+                                            missingSDOrgUnitUUIDs.Add(sdOrgUnit.Uuid);
+                                        }
                                         logger.LogInformation($"Not importing affiliation {sofdAffiliation.PositionName} for person with Uuid {sofdPerson.Uuid} and Cpr {Helper.FormatCprForLog(sofdPerson.Cpr)} because SD orgunit {sdEmployment.DepartmentUUIDIdentifier} was not mapped to a SOFD orgunit.");
                                         sofdPerson.Affiliations.Remove(sofdAffiliation);
                                         continue;
@@ -383,8 +462,11 @@ namespace sofd_core_sd_integration
                 foreach (var sofdPerson in toBeDeleted)
                 {
                     logger.LogInformation($"Removing all SD affiliations with master {master} from person with Uuid {sofdPerson.Uuid}");
-                    sofdPerson.Affiliations.RemoveAll(a => a.Master == master);
-                    sofdService.UpdatePerson(sofdPerson);
+                    var removedCount = sofdPerson.Affiliations.RemoveAll(a => a.Master == master);
+                    if (removedCount > 0)
+                    {
+                        sofdService.UpdatePerson(sofdPerson);
+                    }                    
                 }
                 NotifyAboutMissingOrgs(sdOrgUnits, missingSDOrgUnitUUIDs);
             }
@@ -394,13 +476,13 @@ namespace sofd_core_sd_integration
             }
         }
 
-        private void DeltaSynchronizeForInstitution(Institution institution, List<SDOrgUnit> sdOrgUnits, DateTime changedFrom, DateTime changedTo, bool isFuture, string cpr)
+        private void DeltaSynchronizeForInstitution(Institution institution, List<SDOrgUnit> sdOrgUnits, Dictionary<string, SDProfession> sdProfessions, DateTime changedFrom, DateTime changedTo, string cpr = null)
         {
             try
             {
                 var master = appSettings.SOFDSettings.MasterPrefix + institution.Identifier;
 
-                var changedPersons = isFuture ? sdService.GetChangesAtDate(institution.Identifier, changedFrom, changedTo, cpr) : sdService.GetChanges(institution.Identifier, changedFrom, changedTo, cpr);
+                var changedPersons = sdService.GetChanges(institution.Identifier, changedFrom, changedTo, cpr);
                 var missingTagLogs = new List<string>();
                 var missingSDOrgUnitUUIDs = new HashSet<string>();
                 foreach (var changedPerson in changedPersons)
@@ -424,7 +506,7 @@ namespace sofd_core_sd_integration
                             sofdPerson.Firstname = sdPerson.PersonGivenName;
                             sofdPerson.Surname = sdPerson.PersonSurnameName;
                             // do not add address from SD if it looks funky (propably address protected)
-                            if (sdPerson.HasValidAddress())
+                            if (appSettings.PrivateAddressEnabled && sdPerson.HasValidAddress())
                             {
                                 sofdPerson.RegisteredPostAddress = new PostAddress
                                 {
@@ -437,14 +519,23 @@ namespace sofd_core_sd_integration
                                     PostalCode = sdPerson.PostalCode
                                 };
                             }
-                        }
-
-                        foreach (var changedEmployment in changedPerson.Employments)
+                        }                        
+                        foreach (var changedEmployment in changedPerson.ChangedEmployments)
                         {
-
+                            logger.LogTrace($"EmploymentIdentifier: {changedEmployment.EmploymentIdentifier}");
                             // if instititution is not the prime institution, we prefix the employmentidentifier to prevent duplicates
                             var employmentMasterId = institution.Prime ? changedEmployment.EmploymentIdentifier : institution.Identifier + "-" + changedEmployment.EmploymentIdentifier;
 
+                            // delete this employment from any other sofd person (SD can delete an employment id and reuse it on other persons /cry)
+                            var badSOFDPersons = sofdPersons.Where(p => p.Uuid != sofdPerson.Uuid && p.Affiliations != null && p.Affiliations.Any(e => e.Master == master && e.MasterId == employmentMasterId));
+                            foreach (var badSOFDPerson in badSOFDPersons)
+                            {
+                                logger.LogWarning($"Removing affiliation with masterId {employmentMasterId} from person with uuid {badSOFDPerson.Uuid} because it was used on another person");
+                                badSOFDPerson.Affiliations.RemoveAll(e => e.Master == master && e.MasterId == employmentMasterId);
+                                sofdService.UpdatePerson(badSOFDPerson);
+                            }
+
+                            // continue normal sync logic
                             var sofdAffiliation = sofdPerson.Affiliations.Where(e => e.Master == master && e.MasterId == employmentMasterId).SingleOrDefault();
                             bool isNewAffilition = false;
                             if (sofdAffiliation == null)
@@ -457,38 +548,72 @@ namespace sofd_core_sd_integration
                                 sofdAffiliation.AffiliationType = "EMPLOYEE";
                                 sofdAffiliation.EmployeeId = employmentMasterId;
                             }
-                            sofdPerson.AnniversaryDate = changedEmployment.AnniversaryDate ?? sofdPerson.AnniversaryDate;
+                            var changedSDEmployment = SDEmployment.FromEmploymentTypeChanged(changedEmployment, isNewAffilition);
+
+                            sofdPerson.AnniversaryDate = changedSDEmployment.AnniversaryDate ?? sofdPerson.AnniversaryDate;
                             // set first employment as lowest employmentdate
-                            if (changedEmployment.StartDate != null && (sofdPerson.FirstEmploymentDate == null || sofdPerson.FirstEmploymentDate > changedEmployment.StartDate))
+                            if (changedSDEmployment.StartDate != null && (sofdPerson.FirstEmploymentDate == null || sofdPerson.FirstEmploymentDate > changedSDEmployment.StartDate))
                             {
-                                sofdPerson.FirstEmploymentDate = changedEmployment.StartDate;
+                                sofdPerson.FirstEmploymentDate = changedSDEmployment.StartDate;
                             }
-                            sofdAffiliation.PositionId = changedEmployment.JobPositionIdentifier ?? sofdAffiliation.PositionId;
-                            if (changedEmployment.EmploymentName != null || isNewAffilition)
+                            sofdAffiliation.PositionId = changedSDEmployment.JobPositionIdentifier ?? sofdAffiliation.PositionId;
+                            if (changedSDEmployment.JobPositionIdentifier != null || isNewAffilition)
                             {
-                                sofdAffiliation.PositionName = String.IsNullOrEmpty(changedEmployment.EmploymentName) ? "Ukendt" : changedEmployment.EmploymentName;
+                                if (!String.IsNullOrEmpty(changedSDEmployment.EmploymentName)) // first check if it has an EmploymentName
+                                {
+                                    sofdAffiliation.PositionName = changedSDEmployment.EmploymentName;
+                                }
+                                else if (changedSDEmployment.JobPositionIdentifier != null && appSettings.JobPositionMap.ContainsKey(changedSDEmployment.JobPositionIdentifier)) // check if we have a mapping for this positionid
+                                {
+                                    sofdAffiliation.PositionName = appSettings.JobPositionMap[changedSDEmployment.JobPositionIdentifier];
+                                }
+                                else if (String.IsNullOrEmpty(sofdAffiliation.PositionName)) // set some fallbacks if affiliation has no value yet
+                                { 
+                                    if (changedSDEmployment.JobPositionIdentifier != null && sdProfessions.ContainsKey(changedSDEmployment.JobPositionIdentifier)) // fallback to position name
+                                    {
+                                        sofdAffiliation.PositionName = sdProfessions[changedSDEmployment.JobPositionIdentifier].Name;
+                                    }
+                                    else
+                                    {
+                                        sofdAffiliation.PositionName = "Ukendt";
+                                    }
+                                }
                             }
-                            sofdAffiliation.EmploymentTerms = changedEmployment.GetOPUSEmploymentTermsId();
-                            sofdAffiliation.EmploymentTermsText = changedEmployment.GetOPUSEmploymentTermsText();
-                            sofdAffiliation.PayGrade = changedEmployment.SalaryClassIdentifier ?? sofdAffiliation.PayGrade;
-                            sofdAffiliation.StartDate = changedEmployment.StartDate ?? sofdAffiliation.StartDate;
-                            sofdAffiliation.StopDate = changedEmployment.StopDate.Changed ? changedEmployment.StopDate.Value : sofdAffiliation.StopDate;
-                            if (changedEmployment.OccupationRate != null)
+                            sofdAffiliation.EmploymentTerms = changedSDEmployment.GetOPUSEmploymentTermsId() ?? sofdAffiliation.EmploymentTerms;
+                            sofdAffiliation.EmploymentTermsText = changedSDEmployment.GetOPUSEmploymentTermsText() ?? sofdAffiliation.EmploymentTermsText;
+                            sofdAffiliation.PayGrade = changedSDEmployment.SalaryClassIdentifier ?? sofdAffiliation.PayGrade;
+                            sofdAffiliation.StartDate = changedSDEmployment.StartDate ?? sofdAffiliation.StartDate;
+                            if (changedSDEmployment.StopDate.Changed)
+                            {
+                                sofdAffiliation.StopDate = changedSDEmployment.StopDate.Value;
+                            }
+                            else if (sofdAffiliation.StopDate?.Date > DateTime.Now.Date ) {
+                                sofdAffiliation.StopDate = null; // if we have a registered future stop-date in sofd, but can't see it in the foreseeable future (3 months), then delete it.
+                            }
+
+                            if (changedSDEmployment.OccupationRate != null)
                             {
                                 var occupationHours = appSettings.DefaultOccupationHours;
-                                if (appSettings.PositionOccupationHoursMap.ContainsKey(sofdAffiliation.PositionId))
+                                if (sofdAffiliation.PositionId != null && appSettings.PositionOccupationHoursMap.ContainsKey(sofdAffiliation.PositionId))
                                 {
                                     occupationHours = appSettings.PositionOccupationHoursMap[sofdAffiliation.PositionId];
                                 }
-                                sofdAffiliation.WorkingHoursNumerator = Math.Round(occupationHours * (changedEmployment.OccupationRate ?? 1), 2);
-                                sofdAffiliation.WorkingHoursDenominator = occupationHours;
+                                var sdNumerator = Math.Round(occupationHours * (changedSDEmployment.OccupationRate ?? 1), 2);
+                                if (sofdAffiliation.WorkingHoursNumerator != sdNumerator)
+                                {
+                                    sofdAffiliation.WorkingHoursNumerator = sdNumerator;
+                                }
+                                if (sofdAffiliation.WorkingHoursDenominator != occupationHours)
+                                {
+                                    sofdAffiliation.WorkingHoursDenominator = occupationHours;
+                                }
                             }
-                            if (changedEmployment.DepartmentUUIDIdentifier != null)
+                            if (changedSDEmployment.DepartmentUUIDIdentifier != null)
                             {
                                 if (appSettings.EmployeeSyncUseTags)
                                 {
                                     // setting orgunit uuid based on Tags in SOFD core
-                                    var sdOrgunit = sdOrgUnits.Where(o => o.Uuid == changedEmployment.DepartmentUUIDIdentifier).First();
+                                    var sdOrgunit = sdOrgUnits.Where(o => o.Uuid == changedSDEmployment.DepartmentUUIDIdentifier).First();
                                     // first try to look up nuværende afdeling in a SOFD tag
                                     if (sofdOrgUnitTags.ContainsKey(sdOrgunit.DepartmentIdentifier))
                                     {
@@ -510,16 +635,30 @@ namespace sofd_core_sd_integration
                                 }
                                 else
                                 {
-                                    // setting orgunit uuid to the same af department uuid in SD
+                                    // setting orgunit uuid to the same af department uuid or to a parent orgunit uuid if not found
                                     if (institution.Prime)
                                     {
-                                        sofdAffiliation.OrgUnitUuid = changedEmployment.DepartmentUUIDIdentifier;
+                                        var currentUuid = changedSDEmployment.DepartmentUUIDIdentifier;
+                                        while (currentUuid != null)
+                                        {
+                                            var sofdOrgUnit = sofdOrgUnits.Where(o => o.Uuid == currentUuid && !o.Deleted).FirstOrDefault();
+                                            if (sofdOrgUnit != null)
+                                            {
+                                                sofdAffiliation.OrgUnitUuid = sofdOrgUnit.Uuid;
+                                                break;
+                                            }
+                                            else
+                                            {
+                                                // find uuid of parent
+                                                currentUuid = sdOrgUnits.Where(o => o.Uuid == currentUuid).FirstOrDefault()?.ParentUuid;
+                                            }
+                                        }
                                     }
                                     else
                                     {
                                         // if this is not the prime sd institution then apply org mappings
                                         string mappedUuid = null;
-                                        var sdOrgUnit = sdOrgUnits.Where(o => o.Uuid == changedEmployment.DepartmentUUIDIdentifier).FirstOrDefault();
+                                        var sdOrgUnit = sdOrgUnits.Where(o => o.Uuid == changedSDEmployment.DepartmentUUIDIdentifier).FirstOrDefault();
                                         while (sdOrgUnit != null && mappedUuid == null)
                                         {
                                             // check if sd orgunit is mapped
@@ -539,8 +678,11 @@ namespace sofd_core_sd_integration
                                         }
                                         else
                                         {
-                                            missingSDOrgUnitUUIDs.Add(sdOrgUnit.Uuid);
-                                            logger.LogWarning($"Not importing affiliation {sofdAffiliation.PositionName} for person with Uuid {sofdPerson.Uuid} and Cpr {Helper.FormatCprForLog(sofdPerson.Cpr)} because SD orgunit {changedEmployment.DepartmentUUIDIdentifier} was not mapped to a SOFD orgunit.");
+                                            if( sdOrgUnit != null )
+                                            {
+                                                missingSDOrgUnitUUIDs.Add(sdOrgUnit.Uuid);
+                                            }
+                                            logger.LogWarning($"Not importing affiliation {sofdAffiliation.PositionName} for person with Uuid {sofdPerson.Uuid} and Cpr {Helper.FormatCprForLog(sofdPerson.Cpr)} because SD orgunit {changedSDEmployment.DepartmentUUIDIdentifier} was not mapped to a SOFD orgunit.");
                                             sofdPerson.Affiliations.Remove(sofdAffiliation);
                                             continue;
                                         }
@@ -548,9 +690,14 @@ namespace sofd_core_sd_integration
 
                                 }
                             }
+                            if (sofdAffiliation.OrgUnitUuid == null) {
+                                logger.LogWarning($"Not importing affiliation {sofdAffiliation.PositionName} for person {sofdPerson.Uuid} because orgunit info could not be resolved");
+                                sofdPerson.Affiliations.Remove(sofdAffiliation);
+                                continue;
+                            }
                             if (!sofdOrgUnits.Any(ou => ou.Uuid == sofdAffiliation.OrgUnitUuid))
                             {
-                                missingSDOrgUnitUUIDs.Add(changedEmployment.DepartmentUUIDIdentifier);
+                                missingSDOrgUnitUUIDs.Add(changedSDEmployment.DepartmentUUIDIdentifier);
                                 logger.LogWarning($"Not importing affiliation {sofdAffiliation.PositionName} for person {sofdPerson.Uuid} because orgunit {sofdAffiliation.OrgUnitUuid} was not found in SOFD.");
                                 if (!isNewAffilition)
                                 {
@@ -569,9 +716,14 @@ namespace sofd_core_sd_integration
                                     sofdPerson.Affiliations.Add(sofdAffiliation);
                                 }
                             }
-                            if (changedEmployment.IsDeleted())
+                            if (changedSDEmployment.IsDeleted())
                             {
-                                logger.LogInformation($"Deleting affiliation {sofdAffiliation.PositionName}, {sofdAffiliation.EmployeeId} for person with Uuid {sofdPerson.Uuid} and Cpr {Helper.FormatCprForLog(sofdPerson.Cpr)}");
+                                logger.LogInformation($"Deleting affiliation {sofdAffiliation.PositionName}, {sofdAffiliation.EmployeeId} for person with Uuid {sofdPerson.Uuid} and Cpr {Helper.FormatCprForLog(sofdPerson.Cpr)} because it is deleted in SD");
+                                sofdPerson.Affiliations.Remove(sofdAffiliation);
+                                continue;
+                            }
+                            if (sofdAffiliation.StartDate >= sofdAffiliation.StopDate) {
+                                logger.LogInformation($"Removing affiliation {sofdAffiliation.PositionName}, {sofdAffiliation.EmployeeId} for person with Uuid {sofdPerson.Uuid} and Cpr {Helper.FormatCprForLog(sofdPerson.Cpr)} because StartDate >= StopDate");
                                 sofdPerson.Affiliations.Remove(sofdAffiliation);
                                 continue;
                             }

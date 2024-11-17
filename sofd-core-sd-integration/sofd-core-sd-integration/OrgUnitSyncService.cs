@@ -35,7 +35,7 @@ namespace sofd_core_sd_integration
             {
                 if (!appSettings.OrgSyncEnabled)
                 {
-                    logger.LogWarning("OrgUnitSyncService not enabled");
+                    logger.LogInformation("OrgUnitSyncService not enabled");
                     return;
                 }
                 logger.LogInformation("OrgUnitSyncService executing");
@@ -55,7 +55,7 @@ namespace sofd_core_sd_integration
 
         private void SynchronizeOrgUnitsToSD()
         {
-            var sofdOrgUnits = sofdService.GetOrgUnits();            
+            var sofdOrgUnits = sofdService.GetOrgUnits().Where(o => !o.Deleted).ToList();
 
             var sofdRoot = sofdOrgUnits.Where(o => o.ParentUuid == null).Single();
             ProcessSDTags(sofdRoot, sofdOrgUnits);

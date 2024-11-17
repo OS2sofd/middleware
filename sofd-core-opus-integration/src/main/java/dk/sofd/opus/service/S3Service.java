@@ -2,10 +2,11 @@ package dk.sofd.opus.service;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.ResourcePatternResolver;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -14,16 +15,35 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+
 import dk.sofd.opus.config.MunicipalityConfiguration;
 import dk.sofd.opus.dao.model.Municipality;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class S3Service {
-	
+    private AmazonS3 amazonS3;
+
     @Autowired
-    private ResourcePatternResolver resourcePatternResolver;
-    
+    private AWSCredentialsProvider credentialsProvider;
+
+    @Value("${s3.endpoint:https://s3.amazonaws.com}")
+    private String endpoint;
+
+    @Value("${s3.region:eu-west-1}")
+    private String region;
+
     @Autowired
     private RestTemplate restTemplate;
 
@@ -64,30 +84,43 @@ public class S3Service {
 	}
 
 	@SneakyThrows
-    private String getNewestFileNameDirect(Municipality municipality, String filePrefix) {    	
-    	// try the opus subfolder first - if it is empty, try the root
-        Resource[] xmlFiles = resourcePatternResolver.getResources("s3://" + municipality.getBucket() + "/opus/" + filePrefix + "*");
-        Resource newestResource = null;
-        for (Resource resource : xmlFiles) {
-            if (newestResource == null || resource.getFilename().compareTo(newestResource.getFilename()) > 0) {
-                newestResource = resource;
-            }
-        }
-        
-        if (newestResource != null) {
-        	return newestResource.getFilename();
-        }
-        
-        // fallback to root folder
-        xmlFiles = resourcePatternResolver.getResources("s3://" + municipality.getBucket() + "/" + filePrefix + "*");
-        newestResource = null;
-        for (Resource resource : xmlFiles) {
-            if (newestResource == null || resource.getFilename().compareTo(newestResource.getFilename()) > 0) {
-                newestResource = resource;
-            }
-        }
+    private String getNewestFileNameDirect(Municipality municipality, String filePrefix) {
+        try {
+            ListObjectsV2Request request = new ListObjectsV2Request().withBucketName(municipality.getBucket()).withPrefix(filePrefix);
+            ListObjectsV2Result result;
 
-        return newestResource == null ? null : newestResource.getFilename();
+            List<S3ObjectSummary> summaries = new ArrayList<S3ObjectSummary>();
+            do {
+                try {
+                    result = getS3Client().listObjectsV2(request);
+                }
+                catch(Exception e) {
+                    log.warn("Call to Amazon failed resetting AmazonClient");
+                    amazonS3 = null;
+                    throw(e);
+                }
+
+                summaries.addAll(result.getObjectSummaries());
+                request.setContinuationToken(result.getNextContinuationToken());
+            } while (result.isTruncated());
+
+            S3ObjectSummary newestSummary = null;
+            for (var summary : summaries) {
+                if (newestSummary == null || summary.getLastModified().after(newestSummary.getLastModified())) {
+                	newestSummary = summary;
+                }
+
+            }
+            
+            return newestSummary == null ? null : newestSummary.getKey();
+        } 
+        catch (Exception ex) {
+            log.warn("Call to Amazon failed resetting AmazonClient");
+            amazonS3 = null;
+
+        	log.error("getNewestFileNameDirect operation failed for " + municipality.getName(), ex);
+            return null;
+        }
     }
 
 	@SneakyThrows
@@ -113,9 +146,19 @@ public class S3Service {
 
 	@SneakyThrows
     private InputStreamReader readFileDirect(Municipality municipality, String fileName) {
-		Resource resource = resourcePatternResolver.getResource("s3://" + municipality.getBucket() + "/" + fileName);
+        GetObjectRequest getObjectRequest = new GetObjectRequest(municipality.getBucket(), fileName);
+        S3Object s3Object;
 
-		return new InputStreamReader(resource.getInputStream());
+        try {
+            s3Object = getS3Client().getObject(getObjectRequest);
+        }
+        catch(Exception e) {
+            log.warn("Call to Amazon failed resetting AmazonClient");
+            amazonS3 = null;
+            throw(e);
+        }
+
+		return new InputStreamReader(s3Object.getObjectContent());
     }
 	
 	private HttpHeaders getHeaders(String apiKey) {
@@ -124,4 +167,15 @@ public class S3Service {
 
 		return headers;
 	}
+	
+    private AmazonS3 getS3Client() {
+        if (amazonS3 == null) {
+            amazonS3 = AmazonS3ClientBuilder.standard()
+                    .withCredentials(credentialsProvider)
+                    .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, region))
+                    .build();
+        }
+
+        return amazonS3;
+    }
 }

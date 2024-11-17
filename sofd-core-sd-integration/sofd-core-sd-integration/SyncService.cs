@@ -12,12 +12,14 @@ namespace sofd_core_sd_integration
         private readonly DatabaseContext databaseContext;
         private readonly OrgUnitSyncService orgUnitSyncService;
         private readonly PersonSyncService personSyncService;
+        private readonly SDToSOFDOrgUnitService sdToSOFDOrgUnitService;
 
         public SyncService(IServiceProvider sp) : base(sp)
         {
             databaseContext = sp.GetService<DatabaseContext>();
             orgUnitSyncService = sp.GetService<OrgUnitSyncService>();
             personSyncService = sp.GetService<PersonSyncService>();
+            sdToSOFDOrgUnitService = sp.GetService<SDToSOFDOrgUnitService>();
         }
 
         public void Synchronize()
@@ -26,8 +28,13 @@ namespace sofd_core_sd_integration
             {
                 logger.LogInformation("SyncService executing");
                 InitializeDatabase();
+
+                // synchronize sd orgunits to sofd if enabled
+                var sdManagerMap = sdToSOFDOrgUnitService.Synchronize();
+                // synchronize sofd org units to sd if enabled
                 orgUnitSyncService.Synchronize();
-                personSyncService.Synchronize();
+                // synchronize employees from sd to sofd
+                personSyncService.Synchronize(sdManagerMap);
                 logger.LogInformation("SyncService finsihed");
             }
             catch (Exception e)

@@ -1,0 +1,31 @@
+ok - * stop ingoing SOFD integrations
+ok - * stop outgoing SOFD integrations (MDM, FleetComplete, KMDInstitution, Rollekatalog)
+ok - * Opdater Syddjurs til nyeste SOFD (2020-11-17)
+ok - * Create SD TAG in SOFD DB
+ok - * backup SOFD DB
+ok - * stop manager sync (SOFD setting) (det der cron udtryk)
+ok - * change prime affiliation master (SOFD setting)
+ok - * change OPUS master to SOFD master på enheder
+ok - * Run script 2-6 in sofd database
+ok - * take a new backup of sofd database
+ok - * Tjek settings i SD integration (skraldespand uuid mv.)
+ok - * clean integration database
+ok - * Run script 1 in integration database
+ok - * Dry run org-sync SD integration
+ok - * recreate sync db after dryrun
+ok - * Start SD integration ORG
+ok - * Start SD integration EMP
+ok - * luk OPUS dublet-brugere
+ok - Sikr database backup af integrationsdatabase
+ok - Sikr settings backup af integration
+ok - * lav manuelt oprettede brugere i SOFD (extensionattribute3) om til SOFD oprettede og 
+ok - * enable sofd 2,3 + target groups again
+ok - * tilpas ad-agent til manuelt oprettede brugere (extensionattribute3)
+ok - opdatér leder på nye enheder
+ok - opdatér kortnavn på nye enheder
+ok - Ansættelsesdato: Salaryagreement <> EmploymentDate
+ok - Fix ansættelsesforhold
+ok - Brian skal synkronisere org ændringer til sts org
+ok - Brian skal fikse stillinger i rollekataloget
+ok - Change MDM Views etc (remember new manager table)
+ok - * start andre integrationer langsomt

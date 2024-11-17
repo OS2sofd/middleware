@@ -5,8 +5,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using SOFDCore.ODataApi.Database;
+using SOFDCore.ODataApi.Models;
 using System.Collections.Generic;
+using System;
 using System.Linq;
+using System.Net;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -60,7 +63,21 @@ namespace SOFDCore.ODataApi.Auth
                 var identities = new List<ClaimsIdentity> { identity };
                 var principal = new ClaimsPrincipal(identities);
                 var ticket = new AuthenticationTicket(principal, Options.Scheme);
-                return AuthenticateResult.Success(ticket);
+
+                List<IpRange> whitelist = new List<IpRange>();
+                var allowedRanges = sofdContext.IpRanges.Where(ip => ip.ClientId == client.Id).ToList();
+                if(allowedRanges != null)
+                {
+                    whitelist = allowedRanges;
+                }
+                if(IpWhitelistMatcher(whitelist, Context))
+                {
+                    return AuthenticateResult.Success(ticket);
+                }
+                else
+                {
+                    return AuthenticateResult.Fail("IP not whitelisted for provided API Key.");
+                }
             }
 
             return AuthenticateResult.Fail("Invalid API Key provided.");
@@ -82,6 +99,25 @@ namespace SOFDCore.ODataApi.Auth
             var problemDetails = new ForbiddenProblemDetails();
 
             await Response.WriteAsync(JsonConvert.SerializeObject(problemDetails));
+        }
+
+        public bool IpWhitelistMatcher(List<IpRange> whitelist, HttpContext context)
+        {
+            if(whitelist == null || whitelist.Count==0)
+            {
+                return true;
+            }
+            var ip = IPAddress.Parse(context.Connection.RemoteIpAddress.ToString());
+            foreach(IpRange ipRange in whitelist)
+            {
+                IPNetwork2 network = IPNetwork2.Parse(ipRange.Ip);
+                if(network.Contains(ip))
+                {
+                    return true;
+                }
+            }
+            Logger.LogWarning($"Did not find valid network range for IP: {ip}");
+            return false;
         }
     }
 }

@@ -4,7 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
+import dk.digitalidentity.sofd.os2faktor.service.os2faktor.CoreDataGroup;
+import dk.digitalidentity.sofd.os2faktor.service.os2faktor.CoreDataGroupLoad;
+import dk.digitalidentity.sofd.os2faktor.service.rc.UserRole;
+import dk.digitalidentity.sofd.os2faktor.service.rc.UserRoleAssignment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -38,13 +43,15 @@ public class IntegrationService {
 
 	public void run(Municipality municipality) {
 		ObjectMapper mapper = new ObjectMapper();
-		List<SofdPerson> sofdPersons = sofdCoreService.getPersons(municipality);
-		
+
+		List<SofdPerson> sofdPersons = sofdCoreService.getPersons(municipality, municipality.isFetchEmployeesWithoutAdOnly(), municipality.isFetchAzureAdOnly());
+
 		// filter disabled and expired
 		sofdPersons.removeIf(p -> p.isDisabled() || p.isExpired());
 
 		List<RcUser> rcUsersWithNsisAllowedRole = null;
 		List<RcUser> rcUsersWithTransferToNemloginRole = null;
+		List<RcUser> rcUsersWithNegativeRole = null;
 
 		try {
 			if (municipality.isRoleCatalogEnabled()) {
@@ -54,6 +61,10 @@ public class IntegrationService {
 	
 				if (municipality.getRoleCatalogTransferToNemloginRoleId() != null) {
 					rcUsersWithTransferToNemloginRole = roleCatalogueService.getUsersWithRoleWithRoleId(municipality, municipality.getRoleCatalogTransferToNemloginRoleId());
+				}
+
+				if (municipality.getRoleCatalogNegativeRoleId() != 0) {
+					rcUsersWithNegativeRole = roleCatalogueService.getUsersWithRoleWithRoleId(municipality, Integer.toString(municipality.getRoleCatalogNegativeRoleId()));
 				}
 			}
 		}
@@ -74,6 +85,7 @@ public class IntegrationService {
 			entry.setSamAccountName(sofdPerson.getUserId());
 			entry.setUuid(sofdPerson.getUuid());
 			entry.setDepartment(sofdPerson.getPrimaryOrgunitName());
+			entry.setNextPasswordChange(sofdPerson.getPasswordExpireDate());
 
 			if (municipality.isAllowNsisForEveryone()) {
 				entry.setNsisAllowed(true);
@@ -81,13 +93,21 @@ public class IntegrationService {
 			else {
 				entry.setNsisAllowed(false);
 				if (rcUsersWithNsisAllowedRole != null && rcUsersWithNsisAllowedRole.stream().anyMatch(rc -> Objects.equals(rc.getExtUuid(), sofdPerson.getUuid()))) {
-					entry.setNsisAllowed(true);
+
+					// if the user has a negative role, don't set nsisAllowed
+					if (rcUsersWithNegativeRole == null || rcUsersWithNegativeRole.stream().noneMatch(u -> Objects.equals(u.getExtUuid(), sofdPerson.getUuid()))) {
+						entry.setNsisAllowed(true);
+					}
 				}
 			}
 
 			entry.setTransferToNemlogin(false);
 			if (rcUsersWithTransferToNemloginRole != null && rcUsersWithTransferToNemloginRole.stream().anyMatch(rc -> Objects.equals(rc.getExtUuid(), sofdPerson.getUuid()))) {
-				entry.setTransferToNemlogin(true);
+
+				// if the user has a negative role, don't set transferToNemlogin
+				if (rcUsersWithNegativeRole == null || rcUsersWithNegativeRole.stream().noneMatch(u -> Objects.equals(u.getExtUuid(), sofdPerson.getUuid()))) {
+					entry.setTransferToNemlogin(true);
+				}
 			}
 
 			if (StringUtils.hasLength(sofdPerson.getUpn())) {
@@ -146,5 +166,45 @@ public class IntegrationService {
 				}
 			}
 		}
+	}
+
+	public void runGroupSync(Municipality municipality) {
+		if (municipality.getRoleCatalogGroupITSystemId() == 0 || !municipality.isRoleCatalogEnabled()) {
+			return;
+		}
+
+		log.info("Started syncing groups from OS2rollekatalog group it system for municipality " + municipality.getName());
+
+		List<UserRole> rcGroups = new ArrayList<>();
+		try {
+			rcGroups = roleCatalogueService.getUserRolesFromItSystem(municipality, municipality.getRoleCatalogGroupITSystemId());
+		}
+		catch (Exception ex) {
+			log.error("Failed to fetch group IT-system from OS2rollekatalog", ex);
+			return;
+		}
+
+		CoreDataGroupLoad coreDataGroupLoad = new CoreDataGroupLoad();
+		coreDataGroupLoad.setDomain(municipality.getOs2faktorDomain());
+		coreDataGroupLoad.setGroups(new ArrayList<>());
+
+		for (UserRole rcGroup : rcGroups) {
+			CoreDataGroup coreDataGroup = new CoreDataGroup();
+			coreDataGroup.setName(rcGroup.getRoleName());
+			coreDataGroup.setDescription(rcGroup.getRoleDescription());
+			coreDataGroup.setUuid(rcGroup.getRoleIdentifier());
+			coreDataGroup.setMembers(new ArrayList<>(rcGroup.getAssignments().stream().map(UserRoleAssignment::getUserId).collect(Collectors.toSet())));
+
+			coreDataGroupLoad.getGroups().add(coreDataGroup);
+		}
+
+		// sanity checks, to avoid wiping data
+		if (coreDataGroupLoad.getGroups().size() == 0) {
+			log.error("Got 0 group entries for " + municipality.getName());
+			return;
+		}
+
+		coreDataService.syncGroups(municipality, coreDataGroupLoad);
+		log.info("Finished syncing groups from OS2rollekatalog group it system for municipality " + municipality.getName());
 	}
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema xmlns:cvr="http://rep.oio.dk/cvr.dk/xml/schemas/2005/03/22/" elementFormDefault="qualified" targetNamespace="http://rep.oio.dk/cvr.dk/xml/schemas/2005/03/22/" version="1.1" xmlns="http://www.w3.org/2001/XMLSchema">
+  <element name="ProductionUnitIdentifier" type="cvr:ProductionUnitIdentifierType">
+    <annotation>
+      <documentation>Unique and generally usable identifier for all production units (â€œworkplacesâ€).</documentation>
+    </annotation>
+  </element>
+  <simpleType name="ProductionUnitIdentifierType">
+    <restriction base="string">
+      <length value="10" />
+    </restriction>
+  </simpleType>
+</schema>

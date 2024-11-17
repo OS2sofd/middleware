@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2005 rel. 3 U (http://www.altova.com) by JyskeBank (JN Data) -->
+<schema xmlns="http://www.w3.org/2001/XMLSchema" xmlns:oio="urn:oio:definitions:1.0.0" xmlns:orgenhed="urn:oio:sagdok:organisation:organisationenhed:2.0.0" xmlns:sd="urn:oio:sagdok:3.0.0" xmlns:orgfaelles="urn:oio:sagdok:organisation:2.0.0" targetNamespace="urn:oio:sagdok:organisation:organisationenhed:2.0.0" elementFormDefault="qualified" attributeFormDefault="unqualified" oio:mapping="urn:oio:sagdok:MPD:3.0.0">
+	<import namespace="urn:oio:sagdok:3.0.0" schemaLocation="SagDokObjekt.xsd"/>
+	<include schemaLocation="OrganisationEnhed.xsd"/>
+	<import namespace="urn:oio:sagdok:organisation:2.0.0" schemaLocation="OrganisationFaelles.xsd"/>
+	
+	<element name="RegistreringBesked" type="orgenhed:RegistreringBeskedType" oio:definition="urn:oio:sagdok:organisationenhedregistreringbesked:ADD:1.0.0"/>
+	<complexType name="RegistreringBeskedType" oio:definition="urn:oio:sagdok:organisationenhedregistreringbesked:ADD:1.0.0">
+		<sequence>
+			<element name="ObjektID" type="sd:UnikIdType" oio:definition="urn:oio:sagdok:referenceid:ASDD:1.0.0"/>
+			<element ref="orgenhed:Registrering" oio:content="registrering"/>
+		</sequence>
+	</complexType>
+	
+</schema>

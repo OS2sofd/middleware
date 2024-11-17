@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema xmlns:sd20070401="http://rep.oio.dk/sd.dk/xml.schema/20070401/" xmlns:sd="urn:oio:sd:snitflader:2011.12.01" xmlns:sd20070301="http://rep.oio.dk/sd.dk/xml.schema/20070301/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="urn:oio:sd:snitflader:2011.12.01" xmlns="http://www.w3.org/2001/XMLSchema">
+  <import schemaLocation="SD_AutomaticRaiseIndicator_20070401.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <import schemaLocation="SD_FullTimeIndicator_20070401.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <import schemaLocation="SD_SalariedIndicator_20070401.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <import schemaLocation="SD_OccupationRate_20070401.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <import schemaLocation="SD_SalaryRate_20070401.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <import schemaLocation="SD_HourQuantityStructure_20070401.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <import schemaLocation="SD_ActivationDate_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="SD_DeactivationDate_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <element name="WorkingTime" type="sd:WorkingTimeType" />
+  <complexType name="WorkingTimeType">
+    <sequence>
+      <element ref="sd20070301:ActivationDate" />
+      <element ref="sd20070301:DeactivationDate" />
+      <element minOccurs="0" ref="sd20070401:OccupationRate" />
+      <element minOccurs="0" ref="sd20070401:SalaryRate" />
+      <element minOccurs="0" name="OccupationHourQuantity" type="sd20070401:HourQuantityStructureType" />
+      <element minOccurs="0" name="SalaryHourQuantity" type="sd20070401:HourQuantityStructureType" />
+      <element ref="sd20070401:SalariedIndicator" />
+      <element minOccurs="0" ref="sd20070401:FullTimeIndicator" />
+      <element minOccurs="0" ref="sd20070401:AutomaticRaiseIndicator" />
+    </sequence>
+  </complexType>
+</schema>

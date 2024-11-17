@@ -9,5 +9,16 @@ namespace DigitalIdentity.SD.Model
         public string DepartmentIdentifier { get; set; }
         public string ParentDepartmentIdentifier { get; set; }        
         public string Name { get; set; }
+        public bool IsManagerUnit { get; set; } = false;
+        public int SubManagerCount { get; set; } = 0;
+        public string NewParentUuid{ get; set; }
+        public string Street { get; set; }
+        public string PostalCode { get; set; }
+        public string City { get; set; }
+        public bool IncludeUnit { get; set; } = false;
+        public string ManagerEmployeeId { get; set; }
+
+        public string Phone;
+        public bool IsFake { get; set; } = false;
     }
 }

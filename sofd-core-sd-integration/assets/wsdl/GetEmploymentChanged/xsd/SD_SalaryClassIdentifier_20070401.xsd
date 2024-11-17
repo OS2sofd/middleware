@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema xmlns:sd="http://rep.oio.dk/sd.dk/xml.schema/20070401/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" version="1.0" xmlns="http://www.w3.org/2001/XMLSchema">
+  <element name="SalaryClassIdentifier" type="sd:SalaryClassIdentifierType" />
+  <simpleType name="SalaryClassIdentifierType">
+    <restriction base="integer">
+      <minInclusive value="1" />
+      <maxInclusive value="999" />
+    </restriction>
+  </simpleType>
+</schema>

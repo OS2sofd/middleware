@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns:itst="http://rep.oio.dk/itst.dk/xml/schemas/2005/06/24/" xmlns="http://www.w3.org/2001/XMLSchema" targetNamespace="http://rep.oio.dk/itst.dk/xml/schemas/2005/06/24/" elementFormDefault="qualified">
+	<!-- Standard vejadresse: Svarer i dette skema til en aggregering af elementerne StreetNameForAddressing, StreetBuildingIdentifier, FloorIdentifier og SuiteIdentifier, 
+dvs. en tekstlinje som indeholder vejnavn, husnummer inkl. evt. bogstav, etage og dørbetegnelse.-->
+	<element name="StandardAddressIdentifier" type="itst:StandardAddressIdentifierType"/>
+	<simpleType name="StandardAddressIdentifierType">
+		<restriction base="string">
+			<maxLength value="150"/>
+		</restriction>
+	</simpleType>
+</schema>

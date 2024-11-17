@@ -9,6 +9,7 @@ import java.util.Set;
 import net.minidev.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -222,7 +223,31 @@ public class SofdCoreStub {
 			log.error("Failed to delete OrgUnit " + orgUnit.getUuid() + ". " + response.getStatusCodeValue() + ", response=" + response.getBody());
 		}
 	}
-	
+
+	// todo: temporary method that tells us whether SOFD is migrated to the refactored manager system
+	@Cacheable("isManagerMigrated")
+	public boolean isManagerMigrated(Municipality municipality)
+	{
+		var request = new HttpEntity<>(getHeaders(municipality.getApiKey()));
+		var response = restTemplate.exchange(municipality.getUrl() + "/orgunitmanager/isMigrated", HttpMethod.GET, request, String.class);
+		return response.getStatusCode() == HttpStatus.OK;
+	}
+
+	public record OrgUnitManagerDto(String orgunitUuid, String managerUuid ) { }
+	public void updateManagers(List<OrgUnitManagerDto> orgUnitManagers, Municipality municipality) throws Exception {
+		if( !isManagerMigrated(municipality)) { // yeah, it doesn't hit the cache, but it will be removed soon...
+			log.info("Not updating managers for " + municipality.getName() + " because they are not yet migrated");
+			return;
+		}
+		var request = new HttpEntity<>(orgUnitManagers, getHeaders(municipality.getApiKey()));
+		ResponseEntity<String> response = restTemplate.exchange(municipality.getUrl() + "/orgunitmanager/externalUpdate", HttpMethod.POST, request, String.class);
+
+		if (response.getStatusCodeValue() < 200 || response.getStatusCodeValue() > 299) {
+			log.error("Failed to update managers in Sofd: " + response.getBody());
+		}
+	}
+
+
 	public void createNotifications(Set<JSONObject> missingLosIDS, Municipality municipality) throws Exception {
 		HttpEntity<Set<JSONObject>> req = new HttpEntity<>(missingLosIDS, getHeaders(municipality.getApiKey()));
 		ResponseEntity<String> response = restTemplate.exchange(municipality.getUrl() + "/notifications", HttpMethod.POST, req, String.class);

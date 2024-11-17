@@ -70,6 +70,12 @@ public class Municipality {
 	@Column
 	private boolean debugPatch;
 	
+	@Column
+	private long fullSyncLowerBound;
+
+	@Column
+	private long fullSyncUpperBound;
+
 	private transient String clientVersion;
 	private transient String tlsVersion;
 

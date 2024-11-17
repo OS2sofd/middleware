@@ -1,0 +1,1 @@
+update sofd_syddjurs.phones a join sofd_syddjurstest.phones b on b.id = a.id set a.prime = b.prime,a.type_prime = b.type_prime,a.phone_number = b.phone_number,a.phone_type = b.phone_type,a.master = b.master,a.master_id = b.master_id,a.notes = b.notes,a.visibility = b.visibility,a.function_type_id = b.function_type_id;

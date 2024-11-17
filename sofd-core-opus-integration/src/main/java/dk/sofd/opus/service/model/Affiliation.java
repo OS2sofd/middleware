@@ -15,7 +15,7 @@ import lombok.ToString;
 
 @Getter
 @Setter
-@EqualsAndHashCode(exclude = { "uuid" })
+@EqualsAndHashCode(exclude = { "uuid","managerForUuids" })
 @Builder
 @ToString
 @NoArgsConstructor
@@ -40,6 +40,7 @@ public class Affiliation {
     private String affiliationType;
     private String positionId;
     private String positionName;
+    private String positionShort;
     private String positionTypeId;
     private String positionTypeName;
     private Set<String> functions;

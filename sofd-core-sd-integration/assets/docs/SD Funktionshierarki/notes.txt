@@ -1,0 +1,5 @@
+https://www.silkeborgdata.dk/sdfh/api/service/20160803/organisation/c7f71c08-35d0-4700-9200-0000061c0002/funktioner
+
+<RegionIdentifier>SY</RegionIdentifier>
+<RegionUUIDIdentifier>c7f71c08-35d0-4700-9200-0000061c0002</RegionUUIDIdentifier>
+<RegionName>Syddjurs Kommune</RegionName>

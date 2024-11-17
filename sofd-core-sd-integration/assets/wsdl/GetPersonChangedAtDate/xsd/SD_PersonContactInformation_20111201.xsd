@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema xmlns:sd="urn:oio:sd:snitflader:2011.12.01" xmlns:dkcc20050315="http://rep.oio.dk/ebxml/xml/schemas/dkcc/2005/03/15/" xmlns:dkcc20030213="http://rep.oio.dk/ebxml/xml/schemas/dkcc/2003/02/13/" xmlns:sd20070301="http://rep.oio.dk/sd.dk/xml.schema/20070301/" xmlns:sd20080201="http://rep.oio.dk/sd.dk/xml.schema/20080201/" xmlns:cpr20050318="http://rep.oio.dk/cpr.dk/xml/schemas/core/2005/03/18/" xmlns:xkom1="http://rep.oio.dk/xkom.dk/xml/schemas/2005/03/15/" xmlns:itst20050624="http://rep.oio.dk/itst.dk/xml/schemas/2005/06/24/" xmlns:itst20050110="http://rep.oio.dk/itst.dk/xml/schemas/2005/01/10/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="urn:oio:sd:snitflader:2011.12.01" xmlns="http://www.w3.org/2001/XMLSchema">
+  <import schemaLocation="SD_ContactInformation_20080201.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20080201/" />
+  <import schemaLocation="SD_PostalAddress_20070301.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="CPR_PersonCivilRegistrationIdentifier_20050318.xsd" namespace="http://rep.oio.dk/cpr.dk/xml/schemas/core/2005/03/18/" />
+  <import schemaLocation="DKCC_PersonGivenName_20030213.xsd" namespace="http://rep.oio.dk/ebxml/xml/schemas/dkcc/2003/02/13/" />
+  <import schemaLocation="DKCC_PersonSurnameName_20030213.xsd" namespace="http://rep.oio.dk/ebxml/xml/schemas/dkcc/2003/02/13/" />
+  <element name="PersonContactInformation" type="sd:PersonContactInformationType" />
+  <complexType name="PersonContactInformationType">
+    <sequence>
+      <element ref="cpr20050318:PersonCivilRegistrationIdentifier" />
+      <element minOccurs="0" ref="dkcc20030213:PersonGivenName" />
+      <element minOccurs="0" ref="dkcc20030213:PersonSurnameName" />
+      <element minOccurs="0" ref="sd20070301:PostalAddress" />
+      <element minOccurs="0" ref="sd20080201:ContactInformation" />
+    </sequence>
+  </complexType>
+</schema>

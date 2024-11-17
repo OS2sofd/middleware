@@ -9,6 +9,7 @@ namespace DigitalIdentity.SD.Model
     {
         public List<SDEmployment> Employments { get; set; }
         public string PersonCivilRegistrationIdentifier { get; set; }
+        public List<EmploymentType> ChangedEmployments { get; set; }
         public string PersonGivenName { get; set; }
         public string PersonSurnameName { get; set; }
 
@@ -55,7 +56,7 @@ namespace DigitalIdentity.SD.Model
         {
             var result = new SDPerson();
             result.PersonCivilRegistrationIdentifier = p.PersonCivilRegistrationIdentifier;
-            result.Employments = p.Employment.Select(e => SDEmployment.FromEmploymentTypeChanged(e)).ToList();
+            result.ChangedEmployments = p.Employment.ToList();
             return result;
         }
     }

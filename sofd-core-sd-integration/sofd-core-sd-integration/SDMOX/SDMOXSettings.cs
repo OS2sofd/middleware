@@ -13,5 +13,9 @@ namespace DigitalIdentity.SDMOX
         public string Password { get; set; }
         public string InstitutionUUID { get; set; }
         public string DeletedOrgsUuid { get; set; }
+        public bool SslEnabled { get; set; } = false;
+        public string CertPath { get; set; } = "";
+        public string CertPassphrase { get; set; } = "";
+        public string ServerName { get; set; } = "";
     }
 }

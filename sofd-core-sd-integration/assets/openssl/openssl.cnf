@@ -1,0 +1,18 @@
+[ req ]
+default_bits = 2048
+default_keyfile = client.key
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+[ req_distinguished_name ]
+C = DK
+ST = Jylland
+L = Århus
+O = Digital Identity ApS
+OU = OS2sofd
+CN = sd-mox-SY
+emailAddress = kontakt@digital-identity.dk
+[ v3_req ]
+basicConstraints = CA:FALSE
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth

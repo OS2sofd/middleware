@@ -56,9 +56,23 @@ public class Municipality {
 	private String roleCatalogTransferToNemloginRoleId;
 
 	@Column
+	private int roleCatalogNegativeRoleId;
+
+	@Column(name = "role_catalog_group_it_system_id")
+	private int roleCatalogGroupITSystemId;
+
+	@Column
 	private String attributes;
 	
 	@Column
 	private boolean writebackToSofd;
 
+	@Column
+	private boolean disabled;
+
+	@Column
+	private boolean fetchEmployeesWithoutAdOnly;
+	
+	@Column
+	private boolean fetchAzureAdOnly;
 }

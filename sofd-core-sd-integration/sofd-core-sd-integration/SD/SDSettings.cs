@@ -11,11 +11,16 @@ namespace DigitalIdentity.SD
         public string FunkBaseUrl { get; set; }
         public string FunkTopInstUuid { get; set; }
         public bool UseCodes { get; set; } = false;
-
+        public bool AllOrgUnitsIncluded { get; set; } = false;
+        public List<string> OrgUnitBlacklist { get; set; } = new List<string>();
+        public string OrgUnitExcludeRegex { get; set; } 
+        public List<string> OrgUnitWhitelist { get; set; } = new List<string>();
         public class Institution
         {
             public string Identifier { get; set; }
             public bool Prime { get; set; } = false;
+            public string TopOrgUuid { get; set; }
+            public string SOFDTopOrgUuid { get; set; }
             public List<Mapping> Mappings { get; set; } = new List<Mapping>();
         }
 

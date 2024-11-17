@@ -109,23 +109,44 @@ namespace DigitalIdentity.SD.Model
             return result;
         }
 
-        public static SDEmployment FromEmploymentTypeChanged(GetEmploymentChanged.EmploymentType e)
+        public static SDEmployment FromEmploymentTypeChanged(GetEmploymentChanged.EmploymentType e, bool isNewAffiliation)
         {
             var result = new SDEmployment();
             result.EmploymentIdentifier = e.EmploymentIdentifier;
             result.AnniversaryDate = e.AnniversaryDate.Year == 1 ? null : (DateTime?)e.AnniversaryDate;
-            result.DepartmentUUIDIdentifier = e.EmploymentDepartmentType?.DepartmentUUIDIdentifier;
-            result.JobPositionIdentifier = e.ProfessionType?.JobPositionIdentifier;
-            result.EmploymentName = e.ProfessionType?.EmploymentName;
-            result.EmploymentStatusCode = e.EmploymentStatusType?.EmploymentStatusCode;
-            result.EmploymentStatusText = GetEmploymentStatusText(e.EmploymentStatusType?.EmploymentStatusCode);
-            result.SalaryClassIdentifier = e.SalaryAgreementType?.SalaryClassIdentifier;
-            result.StartDate = (e.EmploymentDate == DateTime.MinValue) ? null : (DateTime?)e.EmploymentDate;
-            result.StopDate = (e.EmploymentStatusType != null, CalculateStopDate(e.EmploymentStatusType?.EmploymentStatusCode, e.EmploymentStatusType?.ActivationDate));
-            result.OccupationRate = e.WorkingTimeType?.OccupationRate;
-            result.SalariedIndicator = e.WorkingTimeType?.SalariedIndicator;
-            result.PrepaidIndicator = e.SalaryAgreementType?.PrepaidIndicator;
 
+            // for new affiliations we accept any future data, so that we can get them registered in sofd ahead of time
+            if (isNewAffiliation)
+            {
+                result.DepartmentUUIDIdentifier = e.MostRecentDepartmentChange?.DepartmentUUIDIdentifier ?? e.NearestFutureDepartmentChange?.DepartmentUUIDIdentifier;
+                result.JobPositionIdentifier = e.MostRecentProfessionChange?.JobPositionIdentifier ?? e.NearestFutureProfessionChange?.JobPositionIdentifier;
+                result.EmploymentName = e.MostRecentProfessionChange?.EmploymentName ?? e.NearestFutureProfessionChange?.EmploymentName;
+                result.EmploymentStatusCode = e.MostRecentEmploymentStatusChange?.EmploymentStatusCode ?? e.NearestFutureEmploymentStatusChange?.EmploymentStatusCode;
+                result.EmploymentStatusText = GetEmploymentStatusText(e.MostRecentEmploymentStatusChange?.EmploymentStatusCode ?? e.NearestFutureEmploymentStatusChange?.EmploymentStatusCode);
+                result.SalaryClassIdentifier = e.MostRecentSalaryAgreementChange?.SalaryClassIdentifier ?? e.NearestFutureSalaryAgreementChange?.SalaryClassIdentifier;
+                result.StartDate = (e.EmploymentDate == DateTime.MinValue) ? null : (DateTime?)e.EmploymentDate;
+                var statusChange = e.MostRecentEmploymentStatusChange ?? e.NearestFutureEmploymentStatusChange;
+                result.StopDate = (statusChange != null, CalculateStopDate(statusChange?.EmploymentStatusCode, statusChange?.ActivationDate));
+                result.OccupationRate = e.MostRecentWorkingTimeChange?.OccupationRate ?? e.NearestFutureWorkingTimeChange?.OccupationRate;
+                result.SalariedIndicator = e.MostRecentWorkingTimeChange?.SalariedIndicator ?? e.NearestFutureWorkingTimeChange?.SalariedIndicator;
+                result.PrepaidIndicator = e.MostRecentSalaryAgreementChange?.PrepaidIndicator ?? e.NearestFutureSalaryAgreementChange?.PrepaidIndicator;
+            }
+            // for existing affiliations we're only interested in the future stopdate - otherwise we only look at most recent change
+            else 
+            {
+                result.DepartmentUUIDIdentifier = e.MostRecentDepartmentChange?.DepartmentUUIDIdentifier;
+                result.JobPositionIdentifier = e.MostRecentProfessionChange?.JobPositionIdentifier;
+                result.EmploymentName = e.MostRecentProfessionChange?.EmploymentName;
+                result.EmploymentStatusCode = e.MostRecentEmploymentStatusChange?.EmploymentStatusCode;
+                result.EmploymentStatusText = GetEmploymentStatusText(e.MostRecentEmploymentStatusChange?.EmploymentStatusCode);
+                result.SalaryClassIdentifier = e.MostRecentSalaryAgreementChange?.SalaryClassIdentifier;
+                result.StartDate = (e.EmploymentDate == DateTime.MinValue) ? null : (DateTime?)e.EmploymentDate;
+                var statusChange = e.MostRecentEmploymentStatusChange ?? e.NearestFutureEmploymentStatusChange;
+                result.StopDate = (statusChange != null, CalculateStopDate(statusChange?.EmploymentStatusCode, statusChange?.ActivationDate));
+                result.OccupationRate = e.MostRecentWorkingTimeChange?.OccupationRate;
+                result.SalariedIndicator = e.MostRecentWorkingTimeChange?.SalariedIndicator;
+                result.PrepaidIndicator = e.MostRecentSalaryAgreementChange?.PrepaidIndicator;
+            }
             return result;
         }
 
@@ -135,16 +156,26 @@ namespace DigitalIdentity.SD.Model
             result.EmploymentIdentifier = e.EmploymentIdentifier;
             result.AnniversaryDate = e.AnniversaryDate.Year == 1 ? null : (DateTime?)e.AnniversaryDate;
             result.StartDate = (e.EmploymentDate == DateTime.MinValue) ? null : (DateTime?)e.EmploymentDate;
-            result.DepartmentUUIDIdentifier = e.DepartmentTypeChangedAtDate?.DepartmentUUIDIdentifier;
-            result.JobPositionIdentifier = e.ProfessionTypeChangedAtDate?.JobPositionIdentifier;
-            result.EmploymentName = e.ProfessionTypeChangedAtDate?.EmploymentName;
-            result.EmploymentStatusCode = e.Items?.OfType<EmploymentStatusTypeChangedAtDate>().Where(i => i.ActivationDate >= e.EmploymentDate).OrderBy(i => i.ActivationDate).FirstOrDefault()?.EmploymentStatusCode;
+
+            var departmentChange = e.Items?.OfType<DepartmentTypeChangedAtDate>().Where(i => i.ActivationDate >= e.EmploymentDate).OrderBy(i => i.ActivationDate).FirstOrDefault();
+            result.DepartmentUUIDIdentifier = departmentChange?.DepartmentUUIDIdentifier;
+
+            var professionChange = e.Items?.OfType<ProfessionTypeChangedAtDate>().Where(i => i.ActivationDate >= e.EmploymentDate).OrderBy(i => i.ActivationDate).FirstOrDefault();
+            result.JobPositionIdentifier = professionChange?.JobPositionIdentifier;
+            result.EmploymentName = professionChange ?.EmploymentName;
+
+            var employmentStatusChange = e.Items?.OfType<EmploymentStatusTypeChangedAtDate>().Where(i => i.ActivationDate >= e.EmploymentDate).OrderBy(i => i.ActivationDate).FirstOrDefault();
+            result.EmploymentStatusCode = employmentStatusChange?.EmploymentStatusCode;
             result.EmploymentStatusText = GetEmploymentStatusText(result.EmploymentStatusCode);
-            result.SalaryClassIdentifier = e.SalaryAgreementTypeChangedAtDate?.SalaryClassIdentifier;
-            result.StopDate = (e.EmploymentStatusTypeChangedAtDate != null, CalculateStopDate(e.EmploymentStatusTypeChangedAtDate?.EmploymentStatusCode, e.EmploymentStatusTypeChangedAtDate?.ActivationDate));
-            result.OccupationRate = e.WorkingTimeTypeChangedAtDate?.OccupationRate;
-            result.SalariedIndicator = e.WorkingTimeTypeChangedAtDate?.SalariedIndicator;
-            result.PrepaidIndicator = e.SalaryAgreementTypeChangedAtDate?.PrepaidIndicator;
+            result.StopDate = (employmentStatusChange != null, CalculateStopDate(employmentStatusChange?.EmploymentStatusCode, employmentStatusChange?.ActivationDate));
+
+            var salaryChange = e.Items?.OfType<SalaryAgreementTypeChangedAtDate>().Where(i => i.ActivationDate >= e.EmploymentDate).OrderBy(i => i.ActivationDate).FirstOrDefault();
+            result.SalaryClassIdentifier = salaryChange?.SalaryClassIdentifier;
+            result.PrepaidIndicator = salaryChange?.PrepaidIndicator;
+
+            var workingTimeChange = e.Items?.OfType<WorkingTimeTypeChangedAtDate>().Where(i => i.ActivationDate >= e.EmploymentDate).OrderBy(i => i.ActivationDate).FirstOrDefault();
+            result.OccupationRate = workingTimeChange?.OccupationRate;
+            result.SalariedIndicator = workingTimeChange?.SalariedIndicator;
             return result;
         }
     }

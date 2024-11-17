@@ -18,6 +18,7 @@ public class CoreDataEntry {
 	private boolean transferToNemlogin;
 	private Map<String, String> attributes;
 	private String department;
+	private String nextPasswordChange;
 
 	public CoreDataEntry() {
 		this.attributes = new HashMap<>();

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" xmlns:silkdata="urn:oio:silkdata:1.0.0" xmlns:oio="urn:oio:definitions:1.0.0" xmlns:sd="urn:oio:sagdok:3.0.0" xmlns:dkcc2003="http://rep.oio.dk/ebxml/xml/schemas/dkcc/2003/02/13/" xmlns:dkcc2005="http://rep.oio.dk/ebxml/xml/schemas/dkcc/2005/03/15/" xmlns:itst1="http://rep.oio.dk/itst.dk/xml/schemas/2005/06/24/" xmlns:itst2="http://rep.oio.dk/itst.dk/xml/schemas/2005/01/10/" xmlns:cvr="http://rep.oio.dk/cvr.dk/xml/schemas/2005/03/22/" targetNamespace="urn:oio:silkdata:1.0.0" elementFormDefault="qualified" attributeFormDefault="unqualified" oio:mapping="urn:oio:sagdok:MPD:3.0.0">
+	<import namespace="urn:oio:sagdok:3.0.0" schemaLocation="SagDokObjekt.xsd"/>
+	<import namespace="http://rep.oio.dk/itst.dk/xml/schemas/2005/01/10/" schemaLocation="ITST_TelephoneNumberIdentifier.xsd"/>
+	<import namespace="http://rep.oio.dk/ebxml/xml/schemas/dkcc/2005/03/15/" schemaLocation="DKCC_PostCodeIdentifier.xsd"/>
+	<import namespace="http://rep.oio.dk/itst.dk/xml/schemas/2005/06/24/" schemaLocation="ITST_StandardAddressIdentifier.xsd"/>
+	<import namespace="http://rep.oio.dk/ebxml/xml/schemas/dkcc/2005/03/15/" schemaLocation="DKCC_DistrictName.xsd"/>
+	<import namespace="http://rep.oio.dk/cvr.dk/xml/schemas/2005/03/22/" schemaLocation="CVR_ProductionUnitIdentifier.xsd"/>
+	<element name="Integration" type="silkdata:IntegrationType" oio:definition="urn:oio:silkdata:integration:ADD:1.0.0"/>
+	<complexType name="IntegrationType" oio:definition="urn:oio:silkdata:integration:ADD:1.0.0">
+		<sequence>
+			<element ref="sd:Virkning" oio:content="virkning"/>
+			<element name="AttributNavn" type="string" oio:definition="urn:oio:silkdata:attributnavn:BDD:1.0.0"/>
+			<element name="AttributVaerdi" type="string" minOccurs="0" oio:definition="urn:oio:silkdata:attributvaerdi:BDD:1.0.0"/>
+		</sequence>
+	</complexType>
+	<element name="Lokation" type="silkdata:LokationType" oio:definition="urn:oio:c:lokation:ADD:1.0.0"/>
+	<complexType name="LokationType" oio:definition="urn:oio:silkdata:lokation:ADD:1.0.0">
+		<sequence>
+			<element name="ProduktionEnhed" type="silkdata:ProduktionEnhedType" minOccurs="0" oio:definition="urn:oio:silkdata:produktionenhed:ASDD:2.0.0"/>
+			<element name="Kontakt" type="silkdata:KontaktType" minOccurs="0" oio:definition="urn:oio:silkdata:kontakt:ASDD:2.0.0"/>
+			<element name="DanskAdresse" type="silkdata:DanskAdresseType" minOccurs="0" oio:definition="urn:oio:silkdata:danskadresse:ASDD:2.0.0"/>
+		</sequence>
+	</complexType>
+	<complexType name="KontaktType" oio:definition="urn:oio:silkdata:kontakt:ADD:1.0.0">
+		<sequence>
+			<element ref="sd:UUIDIdentifikator" minOccurs="0" oio:content="uuididentifikator"/>
+			<element ref="sd:Virkning" oio:content="virkning"/>
+			<element name="LokalTelefonnummerIdentifikator" type="itst2:TelephoneNumberIdentifierType" minOccurs="0" oio:content="telefonnummerlokalidentifikator"/>
+		</sequence>
+	</complexType>
+	<complexType name="ProduktionEnhedType" oio:definition="urn:oio:silkdata:produktionenhed:ADD:1.0.0">
+		<sequence>
+			<element ref="sd:UUIDIdentifikator" minOccurs="0" oio:content="uuid"/>
+			<element ref="sd:Virkning" oio:content="virkning"/>
+			<element name="ProduktionEnhedIdentifikator" type="cvr:ProductionUnitIdentifierType" minOccurs="0" oio:content="productionunitIdentifier"/>
+		</sequence>
+	</complexType>
+	<complexType name="DanskAdresseType" oio:definition="urn:oio:silkdata:danskadresse:ADD:1.0.0">
+		<sequence>
+			<element ref="sd:UUIDIdentifikator" minOccurs="0" oio:content="uuid"/>
+			<element ref="sd:Virkning" oio:content="virkning"/>
+			<element name="AdresseNavn" type="itst1:StandardAddressIdentifierType" minOccurs="0" oio:content="adressenavn"/>
+			<element name="PostKodeIdentifikator" type="dkcc2005:PostCodeIdentifierType" minOccurs="0" oio:content="postkodeidentifikator"/>
+			<element name="ByNavn" type="dkcc2005:DistrictNameType" minOccurs="0" oio:content="bynavn"/>
+		</sequence>
+	</complexType>
+</schema>

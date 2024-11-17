@@ -14,6 +14,7 @@ namespace SOFDCore.ODataApi.Database
         public virtual DbSet<Photo> Photos { get; set; }
         public virtual DbSet<AccessField> AccessFields { get; set; }
         public virtual DbSet<Function> Functions { get; set; }
+        public virtual DbSet<IpRange> IpRanges { get; set; }
 
         public SOFDContext(DbContextOptions<SOFDContext> options) : base(options)
         { }

@@ -174,7 +174,9 @@ public class EmployeeConverter {
 			}
 
 			affiliation.setPositionId(emp.getPositionId() != null ? Integer.toString(emp.getPositionId()) : null);
-			affiliation.setPositionName((!StringUtils.isEmpty(emp.getPosition()) ? emp.getPosition() : "Ukendt"));
+			
+			affiliation.setPositionName((StringUtils.hasLength(emp.getPosition()) ? emp.getPosition().trim() : "Ukendt"));
+			affiliation.setPositionShort((StringUtils.hasLength(emp.getPositionShort()) ? emp.getPositionShort().trim() : null));
 			affiliation.setPositionTypeId(emp.getJobId() != null ? Integer.toString(emp.getJobId()) : null);
 			affiliation.setPositionTypeName(emp.getJob());
 
@@ -245,7 +247,7 @@ public class EmployeeConverter {
 				}
 			}
 
-			if (!StringUtils.isEmpty(managerOUs)) {
+			if (StringUtils.hasLength(managerOUs)) {
 
 				for (String managerOU : managerOUs.split(",")) {
 					Affiliation managerAffiliation = new Affiliation();
@@ -257,7 +259,7 @@ public class EmployeeConverter {
 					managerAffiliation.setMasterId(Integer.toString(emp.getId()) + "-" + managerOU);
 					managerAffiliation.setOrgUnitUuid(managerOU);
 					managerAffiliation.setPositionId(emp.getPositionId() != null ? Integer.toString(emp.getPositionId()) : null);
-					managerAffiliation.setPositionName((!StringUtils.isEmpty(emp.getPosition()) ? emp.getPosition() : "Ukendt"));
+					managerAffiliation.setPositionName((StringUtils.hasLength(emp.getPosition()) ? emp.getPosition().trim() : "Ukendt"));
 					managerAffiliation.setPositionTypeId(emp.getJobId() != null ? Integer.toString(emp.getJobId()) : null);
 					managerAffiliation.setPositionTypeName(emp.getJob());
 					managerAffiliation.setFunctions(new HashSet<>());

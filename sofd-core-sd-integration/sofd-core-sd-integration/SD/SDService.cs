@@ -1,4 +1,5 @@
 ﻿using DigitalIdentity.SD.Model;
+using DigitalIdentity.SOFD.Model;
 using DigitalIdentity.Utility;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -7,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -44,7 +46,7 @@ namespace DigitalIdentity.SD
                 request.GetPerson.InstitutionIdentifier = institutionIdentifier;
                 request.GetPerson.PersonCivilRegistrationIdentifier = cpr;
                 request.GetPerson.StatusActiveIndicator = true;
-                request.GetPerson.StatusPassiveIndicator = false;
+                request.GetPerson.StatusPassiveIndicator = true;
                 request.GetPerson.EffectiveDate = DateTime.Now;
                 request.GetPerson.PostalAddressIndicator = true;
                 var response = sdServiceStubs.GetPersonClient.GetPerson20111201Operation(request);
@@ -56,9 +58,9 @@ namespace DigitalIdentity.SD
                 var result = SDPerson.FromPersonType(person);
                 return result;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                throw new Exception($"Person with InstitutionIdentifier {institutionIdentifier} and cpr {Helper.FormatCprForLog(cpr)} not found in SD");
+                throw new Exception($"Person with InstitutionIdentifier {institutionIdentifier} and cpr {Helper.FormatCprForLog(cpr)} not found in SD",e);
             }
         }
 
@@ -126,7 +128,9 @@ namespace DigitalIdentity.SD
             request.FutureInformationIndicator = true;             // ”true” angiver at ved en ændring, ønskes efterfølgende datorelaterede oplysninger medtaget i XML-udtrækket.
 
             var changedEmployments = sdServiceStubs.GetEmploymentChangedAtDateClient.GetEmploymentChangedAtDate20111201Operation(request);
+            logger.LogTrace($"changedEmployments: {JsonConvert.SerializeObject(changedEmployments)}");
             var result = changedEmployments.Person == null ? new List<SDPerson>() : changedEmployments.Person.Select(p => SDPerson.FromPersonTypeChangedAtDate(p)).ToList();
+            logger.LogTrace($"parsed changedEmployments: {JsonConvert.SerializeObject(result)}");
             return result;
         }
 
@@ -144,10 +148,10 @@ namespace DigitalIdentity.SD
             departmentRequest.InstitutionIdentifier = institutionIdentifier;
             departmentRequest.ActivationDate = DateTime.Now;
             departmentRequest.DeactivationDate = DateTime.Now;
-            departmentRequest.ContactInformationIndicator = false;
+            departmentRequest.ContactInformationIndicator = true;
             departmentRequest.DepartmentNameIndicator = true;
             departmentRequest.EmploymentDepartmentIndicator = false;
-            departmentRequest.PostalAddressIndicator = false;
+            departmentRequest.PostalAddressIndicator = true;
             departmentRequest.ProductionUnitIndicator = false;
             departmentRequest.UUIDIndicator = true;
             var departments = sdServiceStubs.GetDepartmentClient.GetDepartment20111201Operation(departmentRequest);
@@ -167,7 +171,35 @@ namespace DigitalIdentity.SD
                     var orgUnit = new SDOrgUnit();
                     orgUnit.Uuid = department.DepartmentUUIDIdentifier;
                     orgUnit.DepartmentIdentifier = department.DepartmentIdentifier.ToLower();
-                    orgUnit.Name = allDepartments.Department.Where(d => d.DepartmentUUIDIdentifier == department.DepartmentUUIDIdentifier).FirstOrDefault()?.DepartmentName;
+                    var departmentLookup = allDepartments.Department.Where(d => d.DepartmentUUIDIdentifier == department.DepartmentUUIDIdentifier).FirstOrDefault();
+                    orgUnit.Name = departmentLookup?.DepartmentName;
+
+                    var telephoneNumbers = departmentLookup?.ContactInformation?.TelephoneNumberIdentifier;
+                    if (telephoneNumbers != null)
+                    {
+                        foreach (var telephoneNumber in telephoneNumbers)
+                        {
+                            if (orgUnit.Phone is null && telephoneNumber != "00000000" && telephoneNumber.Length == 8)
+                            {
+                                orgUnit.Phone = telephoneNumber;
+                            }
+                            if (telephoneNumber.Length == 5) // they put employeeId of manager here.
+                            {
+                                orgUnit.IsManagerUnit = true;
+                                orgUnit.ManagerEmployeeId = telephoneNumber;
+                            }
+                        }
+                    }
+
+                    if (departmentLookup?.PostalAddress?.StandardAddressIdentifier != null
+                        && departmentLookup?.PostalAddress?.PostalCode != null
+                        && departmentLookup?.PostalAddress?.DistrictName != null)
+                    {
+                        orgUnit.Street = departmentLookup.PostalAddress.StandardAddressIdentifier;
+                        orgUnit.PostalCode = departmentLookup.PostalAddress.PostalCode;
+                        orgUnit.City = departmentLookup.PostalAddress.DistrictName;
+                    }
+
                     var parentDepartment = department.DepartmentReference?.FirstOrDefault();
                     if (parentDepartment != null)
                     {
@@ -205,6 +237,38 @@ namespace DigitalIdentity.SD
             {
                 throw new Exception($"Failed to get org functions", e);
             }
+        }
+
+        public Dictionary<string, SDProfession> GetProfessions(string institutionIdentifier) {
+            logger.LogDebug($"Getting professions from institution {institutionIdentifier}");
+            try
+            {
+                var request = new GetProfession.GetProfessionRequestType();
+                request.InstitutionIdentifier = institutionIdentifier;
+                var professions = sdServiceStubs.GetProfessionClient.GetProfession20080201Operation(request);
+                var result = GetProfessionsRecursive(professions.Profession);
+                return result;
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Failed to get professions from institution {institutionIdentifier}", e);
+            }
+        }
+
+        private Dictionary<string, SDProfession> GetProfessionsRecursive(GetProfession.ProfessionType[] professions) { 
+            var result = new Dictionary<string, SDProfession>();
+            foreach (var professionType in professions) {
+                result.TryAdd(professionType.JobPositionIdentifier, new SDProfession() {
+                    Identifier = professionType.JobPositionIdentifier,
+                    Name = professionType.JobPositionName,
+                });
+                // add children
+                if (professionType.Profession != null)
+                {
+                    GetProfessionsRecursive(professionType.Profession).ToList().ForEach(c => result.TryAdd(c.Key, c.Value));
+                }                
+            }
+            return result;
         }
     }
 }

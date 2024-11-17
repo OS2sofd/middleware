@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:jns1="http://rep.oio.dk/sd.dk/xml.schema/20080201/" xmlns:tns="www.sd.dk/sdws/GetProfession20080201" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:jns2="http://rep.oio.dk/sd.dk/xml.schema/20080201/GetProfession20080201" name="GetProfession20080201" targetNamespace="www.sd.dk/sdws/GetProfession20080201" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:import namespace="http://rep.oio.dk/sd.dk/xml.schema/20080201/GetProfession20080201" location="./xsd/SD_GetProfessionRequestInterface.xsd" />
+  <wsdl:import namespace="http://rep.oio.dk/sd.dk/xml.schema/20080201/" location="./xsd/SD_GetProfessionInterface.xsd" />
+  <wsdl:types />
+  <wsdl:message name="GetProfession20080201Request">
+    <wsdl:part name="GetProfession20080201" element="jns2:GetProfession20080201" />
+  </wsdl:message>
+  <wsdl:message name="GetProfession20080201Response">
+    <wsdl:part name="GetProfession20080201" element="jns1:GetProfession20080201" />
+  </wsdl:message>
+  <wsdl:portType name="GetProfession20080201PortType">
+    <wsdl:operation name="GetProfession20080201Operation">
+      <wsdl:input message="tns:GetProfession20080201Request" />
+      <wsdl:output message="tns:GetProfession20080201Response" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="GetProfession20080201Binding" type="tns:GetProfession20080201PortType">
+    <wsdlsoap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="GetProfession20080201Operation">
+      <wsdlsoap:operation soapAction="" />
+      <wsdl:input>
+        <wsdlsoap:body use="literal" namespace="urn:GetProfession20080201" />
+      </wsdl:input>
+      <wsdl:output>
+        <wsdlsoap:body use="literal" namespace="urn:GetProfession20080201" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="GetProfession20080201Service">
+    <wsdl:port name="GetProfession20080201" binding="tns:GetProfession20080201Binding">
+      <wsdlsoap:address location="https://service.sd.dk/sdws/services/GetProfession20080201" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

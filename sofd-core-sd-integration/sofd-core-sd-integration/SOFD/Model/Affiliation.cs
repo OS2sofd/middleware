@@ -77,5 +77,15 @@ namespace DigitalIdentity.SOFD.Model
 
         [JsonProperty("inheritPrivileges")]
         public bool InheritPrivileges { get; set; }
+
+        public bool isActive()
+        {
+            return (StartDate is null || StartDate.Value.Date <= DateTime.Now.Date) && (StopDate is null || StopDate.Value.Date >= DateTime.Now.Date);
+        }
+        public bool isActiveOrFutureActive()
+        {
+            return isActive() || (StartDate != null && StartDate.Value.Date > DateTime.Now.Date);
+        }
+
     }
 }

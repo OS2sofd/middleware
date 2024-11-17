@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema xmlns:sd="urn:oio:sd:snitflader:2011.12.01" xmlns:sd20080201="http://rep.oio.dk/sd.dk/xml.schema/20080201/" xmlns:sd20070301="http://rep.oio.dk/sd.dk/xml.schema/20070301/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="urn:oio:sd:snitflader:2011.12.01" xmlns="http://www.w3.org/2001/XMLSchema">
+  <import schemaLocation="SD_DepartmentStructureName_20080201.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20080201/" />
+  <import schemaLocation="SD_OrganizationStructure_20080201.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20080201/" />
+  <include schemaLocation="SD_GetOrganizationRequest_20111201.xsd" />
+  <include schemaLocation="SD_GetOrganizationRequest_20111201.xsd" />
+  <include schemaLocation="SD_InstitutionIdentifier_20111201.xsd" />
+  <include schemaLocation="SD_RegionIdentifier_20111201.xsd" />
+  <include schemaLocation="SD_RegionUUIDIdentifier_20111201.xsd" />
+  <include schemaLocation="SD_Organization_20111201.xsd" />
+  <element name="GetOrganization20111201" type="sd:GetOrganization20111201Type" />
+  <complexType name="GetOrganization20111201Type">
+    <sequence>
+      <element name="RequestStructure" type="sd:GetOrganizationRequestType" />
+      <element ref="sd:RegionIdentifier" />
+      <element minOccurs="0" ref="sd:RegionUUIDIdentifier" />
+      <element ref="sd:InstitutionIdentifier" />
+      <element minOccurs="0" ref="sd:InstitutionUUIDIdentifier" />
+      <element minOccurs="0" ref="sd20080201:DepartmentStructureName" />
+      <element minOccurs="0" ref="sd20080201:OrganizationStructure" />
+      <element minOccurs="0" maxOccurs="unbounded" ref="sd:Organization" />
+    </sequence>
+    <attribute name="creationDateTime" type="dateTime" use="required" />
+  </complexType>
+</schema>

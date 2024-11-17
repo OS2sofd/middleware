@@ -24,7 +24,14 @@ namespace DigitalIdentity.SDMOX
                 Port = appSettings.SDMOXSettings.Port,
                 VirtualHost = appSettings.SDMOXSettings.VirtualHost,
                 UserName = appSettings.SDMOXSettings.UserName,
-                Password = appSettings.SDMOXSettings.Password
+                Password = appSettings.SDMOXSettings.Password,
+                Ssl = new SslOption() {
+                    Enabled = appSettings.SDMOXSettings.SslEnabled,
+                    CertPath = appSettings.SDMOXSettings.CertPath,
+                    CertPassphrase = appSettings.SDMOXSettings.CertPassphrase,
+                    ServerName = appSettings.SDMOXSettings.ServerName,
+                    AcceptablePolicyErrors = System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors
+                }
             };
         }
 

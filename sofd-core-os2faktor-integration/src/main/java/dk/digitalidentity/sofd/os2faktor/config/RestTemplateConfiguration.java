@@ -52,11 +52,18 @@ public class RestTemplateConfiguration {
 					.register("https", sslsf)
 					.register("http", new PlainConnectionSocketFactory())
 					.build();
+		
+		RequestConfig requestConfig = RequestConfig.custom()
+				.setConnectionRequestTimeout(30000)
+				.setConnectTimeout(30000)
+				.setSocketTimeout(60000)
+				.setCookieSpec(CookieSpecs.STANDARD)
+				.build();
 
 		BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
 		CloseableHttpClient httpClient = HttpClients.custom()
-				.setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build())
 				.setSSLSocketFactory(sslsf)
+				.setDefaultRequestConfig(requestConfig)
 				.setConnectionManager(connectionManager)
 				.build();
 

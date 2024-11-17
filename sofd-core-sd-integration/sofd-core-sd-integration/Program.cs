@@ -14,6 +14,8 @@ using Serilog.Sinks.AwsCloudWatch;
 using sofd_core_sd_integration.Database;
 using System;
 using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Threading;
 
 namespace sofd_core_sd_integration
@@ -21,7 +23,7 @@ namespace sofd_core_sd_integration
     class Program
     {
         static void Main(string[] args)
-        {
+        {            
             var serviceProvider = GetServiceProvider();
             var syncService = new SyncService(serviceProvider);
             syncService.Synchronize();
@@ -74,6 +76,7 @@ namespace sofd_core_sd_integration
             services.AddSingleton<SDMOXService>();
             services.AddSingleton<OrgUnitSyncService>();
             services.AddSingleton<PersonSyncService>();
+            services.AddSingleton<SDToSOFDOrgUnitService>();
 
             return services.BuildServiceProvider();
         }

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RegistreringBesked xmlns="urn:oio:sagdok:organisation:organisationenhed:2.0.0" xmlns:oio="urn:oio:definitions:1.0.0" xmlns:sd="urn:oio:sagdok:3.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:oio:sagdok:organisation:organisationenhed:2.0.0 OrganisationEnhedRegistrering.xsd">
+	<ObjektID>
+		<sd:UUIDIdentifikator>6864e602-d4cc-4ede-92f2-814d08e9bf36</sd:UUIDIdentifikator>
+		<sd:IdentifikatorType>OrganisationEnhed</sd:IdentifikatorType>
+	</ObjektID>
+	<Registrering>
+		<sd:FraTidspunkt>
+			<sd:TidsstempelDatoTid>2015-10-11T09:30:47.0Z</sd:TidsstempelDatoTid>
+		</sd:FraTidspunkt>
+		<sd:LivscyklusKode>Flyttet</sd:LivscyklusKode>
+		<sd:BrugerRef>
+			<sd:UUIDIdentifikator>3bb66b0d-132d-4b98-a903-ea29f6552d53</sd:UUIDIdentifikator>
+			<sd:IdentifikatorType>AD</sd:IdentifikatorType>
+		</sd:BrugerRef>
+		<AttributListe>
+			<Egenskab/>
+			<sd:LokalUdvidelse/>
+		</AttributListe>
+		<TilstandListe/>
+		<RelationListe>
+			<sd:Overordnet>
+				<sd:Virkning>
+					<sd:FraTidspunkt>
+						<sd:TidsstempelDatoTid>2015-10-01T00:00:00.00</sd:TidsstempelDatoTid>
+					</sd:FraTidspunkt>
+					<sd:TilTidspunkt>
+						<sd:TidsstempelDatoTid>2040-12-31T00:00:00.00</sd:TidsstempelDatoTid>
+					</sd:TilTidspunkt>
+				</sd:Virkning>
+				<sd:ReferenceID>
+					<sd:UUIDIdentifikator>2235de61-1e61-4c23-847d-b9ed71829ec1</sd:UUIDIdentifikator>
+				</sd:ReferenceID>
+			</sd:Overordnet>
+			<sd:LokalUdvidelse/>
+		</RelationListe>
+	</Registrering>
+</RegistreringBesked>

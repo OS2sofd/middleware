@@ -85,7 +85,6 @@ public class RoleCatalogueService {
 			// need to wrap it in ArrayList, otherwise it is immutable :(
 			List<Person> personsAsList = new ArrayList<Person>(Arrays.asList(persons));
 			
-			// we only deal with these on full-sync, as it would be to cumbersome to do delta on them (lazy Brian ;))
 			if (municipality.isIncludeNonAffiliationUsers()) {
 				Person[] extraPersons = coreService.getAllAD(municipality);
 				
@@ -235,8 +234,29 @@ public class RoleCatalogueService {
 
 			Person[] persons = coreService.getPersons(municipality);
 
+			// need to wrap it in ArrayList, otherwise it is immutable :(
+			List<Person> personsAsList = new ArrayList<Person>(Arrays.asList(persons));
+
+			if (municipality.isIncludeNonAffiliationUsers()) {
+				Person[] extraPersons = coreService.getAllAD(municipality);
+
+				for (Person extraPerson : extraPersons) {
+					boolean found = false;
+
+					for (Person person : personsAsList) {
+						if (Objects.equals(person.getUserId(), extraPerson.getUserId())) {
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						personsAsList.add(extraPerson);
+					}
+				}
+			}
+
 			// take only persons mentioned in the delta
-			Person[] filteredPersons = Stream.of(persons)
+			Person[] filteredPersons = personsAsList.stream()
 					// TODO: remove the "Objects.equals(dp.getUuid(), p.getUuid())"-part once all municipalities are running SOFD > 2023-06-02
 					.filter(p -> delta.getUuids().stream().anyMatch(dp -> Objects.equals(dp.getUuid(), p.getUuid()) || Objects.equals(dp.getUuid(), p.getPersonUuid()) ))
 					.toArray(Person[]::new);

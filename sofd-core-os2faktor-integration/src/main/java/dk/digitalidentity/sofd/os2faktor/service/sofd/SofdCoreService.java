@@ -26,13 +26,21 @@ public class SofdCoreService {
 	@Autowired
 	private RestTemplate restTemplate;
 
-	public List<SofdPerson> getPersons(Municipality municipality) {
+	public List<SofdPerson> getPersons(Municipality municipality, boolean fetchEmployeesWithoutAdOnly, boolean fetchEmployeesWithAzureAdOnly) {
 		String url = municipality.getSofdUrl();
 		if (!url.endsWith("/")) {
 			url += "/";
 		}
-		
-		url += "api/sync/adgrid/allad";
+
+		if (fetchEmployeesWithoutAdOnly) {
+			url += "api/sync/adgrid/opusNoAd";
+		}
+		else if (fetchEmployeesWithAzureAdOnly) {
+			url += "api/sync/adgrid/allazure";			
+		}
+		else {
+			url += "api/sync/adgrid/allad";
+		}
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("apiKey", municipality.getSofdApiKey());

@@ -1,5 +1,6 @@
 package dk.digitalidentity.sofd.os2faktor.service.rc;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,5 +39,26 @@ public class RoleCatalogueService {
 		}
 
 		return response.getBody().getAssignments();
+	}
+
+	public List<UserRole> getUserRolesFromItSystem(Municipality municipality, int itSystemIdentifier) throws Exception {
+		String url = municipality.getRoleCatalogUrl();
+		if (!url.endsWith("/")) {
+			url += "/";
+		}
+
+		url += "api/read/itsystem/" + itSystemIdentifier + "?indirectRoles=true";
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("ApiKey", municipality.getRoleCatalogApiKey());
+
+		HttpEntity<UserRole[]> request = new HttpEntity<>(headers);
+
+		ResponseEntity<UserRole[]> response = restTemplate.exchange(url, HttpMethod.GET, request, UserRole[].class);
+		if (response.getStatusCodeValue() != 200 || response.getBody() == null) {
+			throw new Exception(municipality.getName() + ": Could not call OS2rollekatalog - http " + response.getStatusCodeValue());
+		}
+
+		return Arrays.asList(response.getBody());
 	}
 }

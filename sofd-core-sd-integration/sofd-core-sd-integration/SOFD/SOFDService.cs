@@ -9,6 +9,8 @@ using Microsoft.Extensions.Logging;
 using DigitalIdentity.Utility;
 using System.Net;
 using sofd_core_sd_integration.SOFD.Model;
+using DigitalIdentity.SD.Model;
+using System.Linq;
 
 namespace DigitalIdentity.SOFD
 {
@@ -27,6 +29,7 @@ namespace DigitalIdentity.SOFD
         {
             logger.LogDebug($"Updating person with uuid {person.Uuid}");
             var jsonPerson = JsonConvert.SerializeObject(person);
+            logger.LogTrace($"Update person payload: {jsonPerson}");
             var content = new StringContent(jsonPerson.ToString(), Encoding.UTF8, "application/json");
             var response = httpClient.PatchAsync(new Uri(baseUri, $"/api/v2/persons/{person.Uuid}"), content);   
             response.Wait();
@@ -43,6 +46,21 @@ namespace DigitalIdentity.SOFD
                 responseString.Wait();
                 result = JsonConvert.DeserializeObject<Person>(responseString.Result);
             }
+            return result;
+        }
+
+        public OrgUnit CreateOrgUnit(OrgUnit orgUnit)
+        {
+            logger.LogDebug($"Creating orgUnit with uuid {orgUnit.Uuid}");
+            var jsonOrgUnit = JsonConvert.SerializeObject(orgUnit);
+            var content = new StringContent(jsonOrgUnit.ToString(), Encoding.UTF8, "application/json");
+            var response = httpClient.PostAsync(new Uri(baseUri, $"/api/v2/orgUnits"), content);
+            response.Wait();
+            OrgUnit result;
+            response.Result.EnsureSuccessStatusCode();
+            var responseString = response.Result.Content.ReadAsStringAsync();
+            responseString.Wait();
+            result = JsonConvert.DeserializeObject<OrgUnit>(responseString.Result);
             return result;
         }
 
@@ -69,9 +87,12 @@ namespace DigitalIdentity.SOFD
             return result;
         }
 
-        public void ClearManager(OrgUnit orgUnit)
+        public void UpdateManagers(List<OrgUnitManagerDto> managers)
         {
-            var response = httpClient.GetAsync(new Uri(baseUri, $"/api/v2/orgUnits/{orgUnit.Uuid}/clearManager"));
+            logger.LogDebug($"Updating {managers.Count} managers");
+            var jsonManagers = JsonConvert.SerializeObject(managers);
+            var content = new StringContent(jsonManagers.ToString(), Encoding.UTF8, "application/json");
+            var response = httpClient.PostAsync(new Uri(baseUri, "/api/orgunitmanager/externalUpdate"), content);
             response.Wait();
             response.Result.EnsureSuccessStatusCode();
         }
@@ -106,13 +127,12 @@ namespace DigitalIdentity.SOFD
             {
                 throw new Exception("Not all OrgUnits was fetched from SOFD. Increase PageSize");
             }
-            return result;
-
+            return result.Where(o => !o.Deleted).ToList();
         }
 
         public Person GetPerson(string cpr)
         {
-            logger.LogDebug($"Fetching person with cpr {Helper.FormatCprForLog(cpr)}");
+            logger.LogTrace($"Fetching person with cpr {Helper.FormatCprForLog(cpr)}");
             var response = httpClient.GetAsync(new Uri(baseUri, $"/api/v2/persons/byCpr/{cpr}"));
             response.Wait();
             if( response.Result.StatusCode == HttpStatusCode.NotFound)
@@ -171,6 +191,20 @@ namespace DigitalIdentity.SOFD
             var content = new StringContent(jsonNotifications.ToString(), Encoding.UTF8, "application/json");
             var response = httpClient.PostAsync(new Uri(baseUri, "/api/notifications"), content);
             response.Wait();
+            response.Result.EnsureSuccessStatusCode();
+        }
+
+        public void DeleteOrgUnit(string uuid)
+        {
+            logger.LogDebug($"Deleting orgUnit with uuid {uuid}");
+            var content = new StringContent("{\"deleted\": true}", Encoding.UTF8, "application/json");
+            var response = httpClient.PatchAsync(new Uri(baseUri, $"/api/v2/orgUnits/{uuid}"), content);
+            response.Wait();
+            if (response.Result.StatusCode == HttpStatusCode.NotModified)
+            {
+                // accept not modified status code
+                return;
+            }
             response.Result.EnsureSuccessStatusCode();
         }
     }

@@ -25,7 +25,12 @@ public class SyncTask {
 	public void fullSync() {
 		for (Municipality municipality : municipalityService.findAll()) {
 			try {
+				if (municipality.isDisabled()) {
+					continue;
+				}
+
 				integrationService.run(municipality);
+				integrationService.runGroupSync(municipality);
 			}
 			catch (Exception ex) {
 				log.error("Integration failed for " + municipality.getName(), ex);

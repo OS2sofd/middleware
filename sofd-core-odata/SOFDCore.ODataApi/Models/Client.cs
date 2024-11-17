@@ -17,5 +17,6 @@ namespace SOFDCore.ODataApi.Models
         public string AccessRole { get; set; }
         public string TlsVersion { get; set; }
         public ICollection<AccessField> AccessFields { get; set; }
+        public ICollection<IpRange> IpRanges { get; set; }
     }
 }

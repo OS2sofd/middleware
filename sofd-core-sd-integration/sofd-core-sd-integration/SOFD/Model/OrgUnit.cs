@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace DigitalIdentity.SOFD.Model
 {
-    public class OrgUnit
+    public class OrgUnit : ChangeTrackable
     {
         [JsonProperty("uuid")]
         public string Uuid { get; set; }

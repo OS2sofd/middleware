@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema xmlns:sd20070401="http://rep.oio.dk/sd.dk/xml.schema/20070401/" xmlns:sd="http://rep.oio.dk/sd.dk/xml.schema/20080201/" xmlns:sdrequest="http://rep.oio.dk/sd.dk/xml.schema/20080201/GetProfession20080201" xmlns:sd20070301="http://rep.oio.dk/sd.dk/xml.schema/20070301/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="http://rep.oio.dk/sd.dk/xml.schema/20080201/GetProfession20080201" version="1.0" xmlns="http://www.w3.org/2001/XMLSchema">
+  <import schemaLocation="../../../sd.dk/xml.schema/20070301/SD_InstitutionIdentifier.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070301/" />
+  <import schemaLocation="../../../sd.dk/xml.schema/20070401/SD_JobPositionIdentifier.xsd" namespace="http://rep.oio.dk/sd.dk/xml.schema/20070401/" />
+  <complexType name="GetProfessionRequestType">
+    <sequence>
+      <element ref="sd20070301:InstitutionIdentifier" />
+      <element minOccurs="0" ref="sd20070401:JobPositionIdentifier" />
+    </sequence>
+  </complexType>
+</schema>

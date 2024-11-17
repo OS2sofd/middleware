@@ -23,8 +23,22 @@ public class SyncTask {
 	@Scheduled(cron = "0 0/2 5-23 * * *")
 	public void run() {
 		for (Municipality municipality : municipalityService.findAll()) {
-			// full sync every hour (or every 20 minutes if deltaSync is not enabled)
-			if ((syncCounter % 30) == 0 || (!municipality.isDeltaSyncEnabled() && (syncCounter % 10) == 0)) {
+			var fullSync = false;
+
+			if( syncCounter == 0) {
+				// do full sync on application start for all municipalites
+				fullSync = true;
+			}
+			else if (municipality.isDeltaSyncEnabled()) {
+				// do full sync on every 30th run (every 60 minutes), but staggered by municipality id to prevent running all full syncs at the same time
+				fullSync = (syncCounter + municipality.getId()) % 30 == 0;
+			}
+			else  {
+				// do full sync on every 10th run (every 20 minutes), but staggered by municipality id to prevent running all full syncs at the same time
+				fullSync = (syncCounter + municipality.getId()) % 10 == 0;
+			}
+
+			if (fullSync) {
 				roleCatalogueService.performFullSync(municipality);
 			}
 			else if (municipality.isDeltaSyncEnabled()) {
