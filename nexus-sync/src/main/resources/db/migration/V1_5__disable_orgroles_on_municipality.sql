@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN disable_org_role_control BOOLEAN NOT NULL DEFAULT 0;

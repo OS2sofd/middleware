@@ -1,0 +1,1 @@
+ALTER TABLE municipality_settings ADD COLUMN kmd_vagtplan_configuration BIGINT NOT NULL DEFAULT 0;

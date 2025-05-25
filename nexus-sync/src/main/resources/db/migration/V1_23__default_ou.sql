@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN default_ou BIGINT NOT NULL DEFAULT 1;

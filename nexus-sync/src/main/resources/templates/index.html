@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header"></head>
+<body class="top-navigation">
+	<div id="wrapper">
+	    <div id="page-wrapper" class="gray-bg">
+			<div th:replace="fragments/topbar :: topbar"></div>
+
+	        <div class="wrapper wrapper-content">
+	            <div class="row">
+	                <div class="col-lg-10 offset-lg-1">
+                        <div class="ibox">
+                            <div class="ibox-title">
+                                <h5><em class="fa fa-user"></em> &nbsp; Login til nexus synkroniseringsadministration</h5>
+                            </div>
+		
+                            <div class="ibox-content">
+                            	<p>
+								Nexus Synkroniseringsadministrationen er en løsning til at håndtere overførsel af data fra OS2sofd
+								til KMD Nexus. Løsningen anvendes typisk i samspil med OS2vikar løsningen.
+                            	</p>
+                            	
+                            	<p>
+                            	Hvis man efter login får at vide at man ikke er tildelt nogen roller i systemet, skal man tage fat i sin
+                            	brugeradministrator, der skal tildele en en adgang til løsningen via KOMBIT adgangsstyring.
+                            	</p>
+                            	
+	                        	<a style="font-size: 1.5em;" class="btn btn-primary full-width" th:href="@{/users}">Login</a>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+
+	    </div>
+	</div>
+
+	<div th:replace="fragments/footer :: scripts"></div>
+</body>
+</html>

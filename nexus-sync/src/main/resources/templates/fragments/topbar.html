@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div th:fragment="topbar" class="row border-bottom white-bg">
+    <nav class="navbar navbar-expand-lg navbar-static-top"
+         role="navigation">
+        <a th:href="@{/}" class="navbar-brand" style="background: white;">
+        <!-- 
+			<img class="img-fluid" src="/img/logo.png" style="display: inline; max-width: 30vw; max-height: 30px;">
+ 		-->
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse"
+                data-target="#navbar" aria-expanded="false"
+                aria-label="Toggle navigation">
+            <i class="fa fa-reorder"></i>
+        </button>
+
+		<th:block sec:authorize="isAuthenticated()">
+			<div class="navbar-collapse collapse" id="navbar">
+				<ul class="nav navbar-nav mr-auto">
+					<li sec:authorize="hasRole('ROLE_USER')" th:class="${page == 'users'} ? 'active' : ''"><a role="button" th:href="@{/users}" >Brugere</a></li>
+					<li sec:authorize="hasRole('ROLE_ADMIN')" th:class="${page == 'settings'} ? 'active' : ''"><a role="button" th:href="@{/settings}">Opsætning</a></li>
+				</ul>
+
+    	        <ul class="d-none d-lg-inline nav navbar-top-links navbar-right ">
+	                <li class="dropdown show">
+                    	<a data-toggle="dropdown" href="#" aria-expanded="true"> <i class="fa fa-user"></i></a>
+                	    <ul class="dropdown-menu">
+	                        <li>
+                            	<a th:href="@{/saml/logout}">
+                        	        <i class="fa fa-sign-out"></i> &nbsp; Log ud
+                    	        </a>
+                	        </li>
+            	        </ul>
+        	        </li>
+    	        </ul>
+	        </div>
+        </th:block>
+    </nav>
+</div>
+</body>
+</html>

@@ -1,0 +1,2 @@
+ALTER TABLE municipality ADD COLUMN sync_all_users BOOLEAN NOT NULL DEFAULT 0;
+ALTER TABLE user ADD COLUMN sofd_kombit_uuid VARCHAR(36) NULL;

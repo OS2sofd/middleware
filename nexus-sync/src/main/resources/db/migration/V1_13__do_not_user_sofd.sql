@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN do_not_use_sofd BOOLEAN NOT NULL DEFAULT 0;

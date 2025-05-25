@@ -1,0 +1,1 @@
+ALTER TABLE municipality_settings ADD clear_cpr_on_lock BOOLEAN NOT NULL DEFAULT 0;

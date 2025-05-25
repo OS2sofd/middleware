@@ -1,0 +1,1 @@
+ALTER TABLE municipality ADD COLUMN email VARCHAR(128) NULL;

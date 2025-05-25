@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="fragments/header :: header(datatables = true, checkbox = true)"></head>
+<body class="top-navigation">
+	<div id="wrapper">
+	    <div id="page-wrapper" class="gray-bg">
+			<div th:replace="fragments/topbar :: topbar(page = 'settings')"></div>
+
+	        <div class="wrapper wrapper-content">
+	            <div class="row">
+	                <div class="col-lg-12">
+                        <div class="ibox">
+                            <div class="ibox-title">
+                                <h2><em class="fa fa-cogs"></em> &nbsp; Opsætning</h2>
+								<div class="ibox-tools">
+									<button class="btn btn-danger" form="settingsForm" type="reset">Annuller</button>
+									<button class="btn btn-primary" form="settingsForm" type="submit">Gem</button>
+								</div>
+                            </div>
+                            
+							<div class="ibox-content">
+								<form id="settingsForm" method="POST" th:object="${settings}" action="/settings">
+									<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+									<h3>Generelt</h3>
+									<div class="row mt-3">
+										<label for="updateUPN" class="col-lg-2 col-form-label">
+											<span>UPN</span>
+											<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om felterne til upn i Nexus skal opdateres løbende" data-original-title="" title="">
+											</em>
+										</label>
+										<div class="col-lg-10">
+											<select id="updateUPN" class="form-control" th:field="*{updateUpn}">
+												<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).ONLY_CREATE}">Udfyld kun ved oprettelse</option>
+												<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).UPDATE}">Opdater løbende</option>
+											</select>
+										</div>
+									</div>
+									<div class="row mt-3">
+										<label for="email" class="col-lg-2 col-form-label">
+											<span>Mail til manglende leverandørorganisationer</span>
+											<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Der kan angives flere mailadresser ved at adskille dem med ;" data-original-title="" title="">
+											</em>
+										</label>
+										<div class="col-lg-10">
+											<input id="email" th:field="*{missingVendorsMail}" class="form-control">
+										</div>
+									</div>
+									<div class="row mt-3">
+										<label for="createFailedEmail" class="col-lg-2 col-form-label">
+											<span>Mail til Nexus brugeroprettelser der er fejlet</span>
+										</label>
+										<div class="col-lg-10">
+											<input id="createFailedEmail" th:field="*{createFailedEmail}" class="form-control">
+										</div>
+									</div>
+									<div class="row mt-3">
+										<label for="inactivationJobEnabled" class="col-lg-2 col-form-label">
+											<span>Spær inaktive AD konti i Nexus</span>
+										</label>
+										<div class="col-lg-10">
+											<input id="inactivationJobEnabled" th:field="*{inactivationJobEnabled}" type="checkbox" class="i-checks" alt="checkbox">
+										</div>
+									</div>
+									<div class="row mt-3">
+										<label for="clearCprOnLock" class="col-lg-2 col-form-label">
+											<span>Blank CPR ved spærring i Nexus (OBS! sker kun hvis det er NexusSync der spærrer kontoen)</span>
+										</label>
+										<div class="col-lg-10">
+											<input id="clearCprOnLock" th:field="*{clearCprOnLock}" type="checkbox" class="i-checks" alt="checkbox">
+										</div>
+									</div>
+									<div class="row mt-3">
+										<label for="disableInitialsUpdate" class="col-lg-2 col-form-label">
+											<span>Undlad opdatering af initialer i Nexus</span>
+										</label>
+										<div class="col-lg-10">
+											<input id="disableInitialsUpdate" th:field="*{disableInitialsUpdate}" type="checkbox" class="i-checks" alt="checkbox">
+										</div>
+									</div>
+									<div class="tabs-container mt-5">
+										<ul class="nav nav-tabs" role="tablist">
+											<li><a class="nav-link active" data-toggle="tab" href="#profile">Profil</a></li>
+											<li><a class="nav-link" data-toggle="tab" href="#system">Systemindstillinger</a></li>
+										</ul>
+										<div class="tab-content">
+											<div role="tabpanel" id="profile" class="tab-pane active">
+												<div class="panel-body">
+													<h3>Organisation</h3>
+													<div class="row mt-3">
+														<label for="organisationNameUpdateType" class="col-lg-2 col-form-label">
+															<span>Organisation</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om feltet skal opdateres løbende. Udfyldes med navnet på den enhed brugerens primære tilhørsforhold peger på i SOFD" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="organisationNameUpdateType" th:field="*{organisationNameUpdateType}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).ONLY_CREATE}">Udfyld kun ved oprettelse</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).UPDATE}">Opdater løbende</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="nexusDefaultDepartment" class="col-lg-2 col-form-label">
+															<span>Afdeling</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Den afdeling en ny bruger oprettes med i Nexus" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<input id="nexusDefaultDepartment" th:field="*{nexusDefaultDepartment}" class="form-control">
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="nexusUnitUpdateType" class="col-lg-2 col-form-label">
+															<span>Opdater enhed</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om feltet skal opdateres løbende." data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="nexusUnitUpdateType" th:field="*{nexusUnitUpdateType}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).ONLY_CREATE}">Udfyld kun ved oprettelse</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).UPDATE}">Opdater løbende</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="nexusUnitFetchFrom" class="col-lg-2 col-form-label">
+															<span>Enhed</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om feltet enhed skal udfyldes med stillingsteksten på det primære tilhørsforhold i SOFD, eller om det skal udfyldes med title fra AD" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="nexusUnitFetchFrom" th:field="*{nexusUnitFetchFrom}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).FROM_SOFD}">Stillingsteksten på det primære tilhørsforhold i SOFD</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).FROM_AD}">Hent fra title feltet i AD, hvis det er muligt ellers fra SOFD</option>
+															</select>
+														</div>
+													</div>
+
+													<hr/>
+													<h3>Kontaktoplysninger</h3>
+													<div class="row mt-3">
+														<label for="nexusDummyEmailAddress" class="col-lg-2 col-form-label">
+															<span>Standard mailadresse</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Den mailadresse en ny bruger oprettes med i Nexus, hvis personen ikke har en mail i SOFD" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<input id="nexusDummyEmailAddress" th:field="*{nexusDummyEmailAddress}" class="form-control">
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="updateMobile" class="col-lg-2 col-form-label">
+															<span>Telefonnummer (mobil)</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om en brugers mobilnummer skal opdateres løbende" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="updateMobile" th:field="*{mobileUpdateType}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).ONLY_CREATE}">Udfyld kun ved oprettelse</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).UPDATE}">Opdater løbende</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="updateWorkPhone" class="col-lg-2 col-form-label">
+															<span>Telefonnummer (arbejde)</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om feltet telefon (arbejde) skal udfyldes med fastnet nummeret fra SOFD" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="updateWorkPhone" th:field="*{workPhoneUpdateType}" class="form-control">
+																<option value="NO">Udfyld ikke</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).ONLY_CREATE}">Udfyld kun ved oprettelse</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).UPDATE}">Opdater løbende</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="updateAddressFields" class="col-lg-2 col-form-label">
+															<span>Adressefelter</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om adressefelterne skal opdateres løbende" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="updateAddressFields" th:field="*{addressUpdateType}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).ONLY_CREATE}">Udfyld kun ved oprettelse</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).UPDATE}">Opdater løbende</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="addressLine1From" class="col-lg-2 col-form-label">
+															<span>Adresselinje 1</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om feltet skal udfyldes med medarbejderens primære enheds primære adresse fra SOFD eller med en standardværdi" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="addressLine1From" th:field="*{addressLineFetchFrom}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).DEFAULT_DATA}">Standardværdi</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).FROM_SOFD}">Hent fra SOFD</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="addressLine1Default" class="col-lg-2 col-form-label">
+															<span>Adresselinje 1 standardværdi</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Anvendes hvis standardværdi er valgt ovenfor eller hvis adressen ikke kan hentes fra SOFD." data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<input id="addressLine1Default" th:field="*{addressLineDefault}" class="form-control">
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="postalCodeFrom" class="col-lg-2 col-form-label">
+															<span>Postnr</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om feltet skal udfyldes med medarbejderens primære enheds primære adresse fra SOFD eller med en standardværdi" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="postalCodeFrom" th:field="*{postalCodeFetchFrom}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).DEFAULT_DATA}">Standardværdi</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).FROM_SOFD}">Hent fra SOFD</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="postalCodeDefault" class="col-lg-2 col-form-label">
+															<span>Postnr standardværdi</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Anvendes hvis standardværdi er valgt ovenfor eller hvis adressen ikke kan hentes fra SOFD." data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<input id="postalCodeDefault" th:field="*{postalCodeDefault}" class="form-control">
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="cityFrom" class="col-lg-2 col-form-label">
+															<span>By</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om feltet skal udfyldes med medarbejderens primære enheds primære adresse fra SOFD eller med en standardværdi" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="cityFrom" th:field="*{cityFetchFrom}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).DEFAULT_DATA}">Standardværdi</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).FROM_SOFD}">Hent fra SOFD</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="cityDefault" class="col-lg-2 col-form-label">
+															<span>By standardværdi</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Anvendes hvis standardværdi er valgt ovenfor eller hvis adressen ikke kan hentes fra SOFD." data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<input id="cityDefault" th:field="*{cityDefault}" class="form-control">
+														</div>
+													</div>
+												</div>
+											</div>
+											<div role="tabpanel" id="system" class="tab-pane">
+												<div class="panel-body">
+													<div class="row mt-3">
+														<label for="updateProfessionalJob" class="col-lg-2 col-form-label">
+															<span>Opdater stillingsbetegnelse</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om en brugers stillingsbetegnelse skal opdateres løbende" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="updateProfessionalJob" th:field="*{professionalJobUpdateType}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).ONLY_CREATE}">Udfyld kun ved oprettelse</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).UPDATE}">Opdater løbende</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="professionalJob" class="col-lg-2 col-form-label">
+															<span>Stillingsbetegnelse</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om feltet skal udfyldes med stillingen fra den primære ansættelse i SOFD, eller om title feltet fra brugerens AD konto skal anvendes. Alternativt, kan der anvendes en defineret standardværdi." data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="professionalJob" th:field="*{professionalJobFetchFrom}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).FROM_SOFD}">Hent fra SOFD hvis muligt, ellers standardværdi</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).FROM_AD}">Hent fra title feltet i AD, hvis det er muligt ellers fra SOFD</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).DEFAULT_DATA}">Standardværdi</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="professionalJobDefault" class="col-lg-2 col-form-label">
+															<span>Stillingsbetegnelse standardværdi</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Anvendes hvis standardværdi er valgt ovenfor eller hvis feltet fra AD eller SOFD ikke kan hentes. Den stilling der angives her, skal findes i Nexus, ellers vil brugere blive oprettet uden stillingsbetegnelse." data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<input id="professionalJobDefault" th:field="*{professionalJobDefault}" class="form-control">
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="orgsUpdateType" class="col-lg-2 col-form-label">
+															<span>Opdater primær organisation, standardleverandør på arbejdstider og default Medcom lokationsnummer</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om felterne primær organisation, standardleverandør på arbejdstider og default Medcom lokationsnummer skal opdateres løbende" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="orgsUpdateType" th:field="*{orgsUpdateType}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).ONLY_CREATE}">Udfyld kun ved oprettelse</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).UPDATE}">Opdater løbende</option>
+															</select>
+														</div>
+													</div>
+													<hr/>
+													<h3>Ekstern system identifikation</h3>
+													<div class="row mt-3">
+														<label for="updateAuthorisationCode" class="col-lg-2 col-form-label">
+															<span>Autorisationskode</span>
+														</label>
+														<div class="col-lg-10">
+															<select id="updateAuthorisationCode" th:field="*{authorisationCodeUpdateType}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).ONLY_CREATE}">Udfyld kun ved oprettelse</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).UPDATE}">Opdater løbende</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="transferCalendar" class="col-lg-2 col-form-label">
+															<span>Overfør kalenderbegivenheder til exchange/outlook</span>
+														</label>
+														<div class="col-lg-10">
+															<select id="transferCalendar" th:field="*{sendToExchangeType}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.BasedOnRoleOrDefault).TRUE}">Ja</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.BasedOnRoleOrDefault).FALSE}">Nej</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.BasedOnRoleOrDefault).ROLE_CATALOG}">Vedligehold på baggrund af en rolletildeling i rollekataloget</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="replyToDefaultMedcomSenderOrganization" class="col-lg-2 col-form-label">
+															<span>Anvend default Medcom lokationsnummer ved besvarelse af Medcom beskeder</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Sættes kun, hvis default Medcom lokationsnummer kan udfyldes. Default Medcom lokationsnummer udfyldes hvis der er match mellem navnet på enheden fra SOFD (primært tilhørsforhold) og en værdi i Nexus listen. Ellers lades den være tom." data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="replyToDefaultMedcomSenderOrganization" th:field="*{useDefaultMedcomSenderType}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.BasedOnRoleOrDefault).TRUE}">Ja</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.BasedOnRoleOrDefault).FALSE}">Nej</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.BasedOnRoleOrDefault).ROLE_CATALOG}">Vedligehold på baggrund af en rolletildeling i rollekataloget</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="municipalityTrust" class="col-lg-2 col-form-label">
+															<span>Trust-baseret aftale</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om og hvordan Trust-baseret aftale skal sættes. Den kan kun sættes, hvis FMK rollen 'Kommunal ansat til medicinhåndtering' er valgt." data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="municipalityTrust" th:field="*{trustType}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.BasedOnRoleOrDefault).NONE}">Udfyld ikke</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.BasedOnRoleOrDefault).TRUE}">Ja</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.BasedOnRoleOrDefault).FALSE}">Nej</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.BasedOnRoleOrDefault).ROLE_CATALOG}">Vedligehold på baggrund af en rolletildeling i rollekataloget</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="nationalRoles" class="col-lg-2 col-form-label">
+															<span>Nationale Roller</span>
+														</label>
+														<div class="col-lg-10">
+															<select id="nationalRoles" th:field="*{nationalRoleDefaultValue}"  class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.NationalRole).NONE}">Ingen</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.NationalRole).SUND_ASSIST_R1}">Rettighed til Fælles Stamkort</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.NationalRole).SUND_ASSIST_R2}">Rettighed til Fælles Stamkort og Aftaleoversigten</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.NationalRole).ROLE_CATALOG}">Vedligehold på baggrund af en rolletildeling i rollekataloget</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="updateFMKRole" class="col-lg-2 col-form-label">
+															<span>Opdater FMK rolle</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Vælg om en brugers FMK rolle skal opdateres løbende. Hvis der nedenunder vælges at den skal baseres på rolletildeling i Rollekataloget, skal feltet opdateres løbende" data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="updateFMKRole" th:field="*{fmkRoleUpdateType}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).ONLY_CREATE}">Udfyld kun ved oprettelse</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.UpdateType).UPDATE}">Opdater løbende</option>
+															</select>
+														</div>
+													</div>
+													<div class="row mt-3">
+														<label for="fmkRolesFetchFrom" class="col-lg-2 col-form-label">
+															<span>FMK rolle</span>
+															<em class="fa fa-question-circle" style="cursor:pointer" data-toggle="popover" data-placement="right" data-content="Feltet udfyldes hvis der findes et match enten via SOFD tilhørsforhold eller rolletildeling i Rollekataloget, ellers lades den være tom." data-original-title="" title="">
+															</em>
+														</label>
+														<div class="col-lg-10">
+															<select id="fmkRolesFetchFrom" th:field="*{fmkRoleFetchFrom}" class="form-control">
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).FROM_SOFD}">Hent fra SOFD tilhørsforhold</option>
+																<option th:value="${T(dk.digitalidentity.dao.model.enums.DataFetchType).FROM_ROLECATALOG}">Vedligehold på baggrund af en rolletildeling i Rollekataloget</option>
+															</select>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</form>
+                            </div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+	    </div>
+	</div>
+
+	<div th:replace="fragments/footer :: scripts(datatables = true, checkbox = true)"></div>
+	
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		/*[+
+			var baseUrl = [[@{/}]];
+		+]*/
+		
+		var token = $("meta[name='_csrf']").attr("content");
+
+		$(document).ready(function() {
+			// Handle potential success msg
+			const { search } = window.location;
+			const success = (new URLSearchParams(search)).get('success');
+			if (success != null) {
+				toastr.success(success);
+			}
+
+			// listener
+			$("#fmkRolesFetchFrom").on("change", function() {
+				if ($("#fmkRolesFetchFrom").val() == "FROM_ROLECATALOG") {
+					$("#updateFMKRole").val("UPDATE");
+					$("#updateFMKRole").prop("disabled", true);
+				} else {
+					$("#updateFMKRole").prop("disabled", false);
+				}
+			});
+
+			// initial
+			if ($("#fmkRolesFetchFrom").val() == "FROM_ROLECATALOG") {
+					$("#updateFMKRole").val("UPDATE");
+					$("#updateFMKRole").prop("disabled", true);
+				} else {
+					$("#updateFMKRole").prop("disabled", false);
+				}
+		});
+
+		/*]]>*/
+	</script>
+
+</body>
+</html>
