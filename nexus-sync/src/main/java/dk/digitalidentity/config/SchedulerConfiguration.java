@@ -10,8 +10,11 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
 // this ensures that no single long-running task will block the smaller faster-running tasks
 @Configuration
-public class SchedulerConfiguration implements SchedulingConfigurer {
+public class SchedulerConfiguration { // implements SchedulingConfigurer {
 
+	// this gave to many issues, so for now we just run a single thread
+
+	/*
     @Bean
     public Executor taskExecutor() {
         return Executors.newScheduledThreadPool(4);
@@ -21,4 +24,5 @@ public class SchedulerConfiguration implements SchedulingConfigurer {
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
         taskRegistrar.setScheduler(taskExecutor());
     }
+    */
 }

@@ -148,5 +148,8 @@ public class MunicipalitySettings {
 	// 0 or 1
 	@Column
 	private long kmdVagtplanConfiguration;
+	
+    @Column
+    private boolean setKmdIdentity;
 
 }

@@ -195,7 +195,7 @@ public class NexusService {
 	                if (changes) {
 		                log.info(municipality.getName() + " : changes detected on orgunit roles for " + userId);
 
-	                    updateOrganizations(municipality, shouldBeInOUIds, dbUser);
+	                    updateOrganizations(municipality, shouldBeInOUIds, dbUser, false);
 	                    
 	                    userService.save(dbUser);
 	                }
@@ -568,6 +568,10 @@ public class NexusService {
         		employeeConfiguration.setCpr(person.getCpr());
         	}
 
+	        if (municipalitySettings.isSetKmdIdentity()) {
+        		employeeConfiguration.setIdentityId(user.getUpn());
+	        }
+
             handlePrimaryOrgAndMedcomAndDefaultOrgSupplier(municipality, primeAffiliationOrgUnit, employee, employeeConfiguration, defaultOrganizationSuppliers, null);
 
             // make sure UPN is set during creation (if one exists) - not sure why it must be stored on both objects, seems a bit silly
@@ -733,6 +737,14 @@ public class NexusService {
         else {
         	user.setLastEmployeeUpdate(LocalDateTime.now());
         	userService.save(user);
+        }
+        
+        // clear any organisations in Nexus
+        if (!municipality.isDisableOrgRoleControl() && user.isControlOrgRoles()) {
+        	// keep the default organisation, clear any others
+            Set<Long> shouldBeInOus = getDefaultAndAffiliationOuAssignments(municipality, user);
+
+            updateOrganizations(municipality, shouldBeInOus, user, true);
         }
 
         EmployeeConfiguration employeeConfiguration = nexusStub.getEmployeeConfiguration(employee.getId(), municipality);
@@ -935,6 +947,7 @@ public class NexusService {
         }
     }
 
+    @Transactional
     public void inactivateEmployees(Municipality municipality) throws Exception {
 
 		log.info(municipality.getName() + " : running disable users");
@@ -1017,6 +1030,7 @@ public class NexusService {
         log.info(municipality.getName() + " : activeInNexus = " + activeInNexus + ", matchingUsers = " + matchingUsers + ", matchingPersons = " + matchingPersons + ", matchingActiveUsers = " + matchingActiveUsers);
     }
 
+    @Transactional
     public void reactivateEmployees(Municipality municipality) throws Exception {
     	// fetch all persons in OS2sofd
         List<Person> personsInSofd = sofdService.getPersons(municipality);
@@ -1329,7 +1343,18 @@ public class NexusService {
 	                employeeConfiguration.getActiveDirectoryConfiguration().setUpn(sofdUser.getUpn());
 	            }
 	        }
-	
+
+	        if (municipalitySettings.isSetKmdIdentity()) {
+	        	if (!Objects.equals(employeeConfiguration.getIdentityId(), sofdUser.getUpn())) {
+	        		log.info(municipality.getName() + " : updating KMD Identity for " + sofdUser.getUserId() + " from " + employeeConfiguration.getIdentityId() + " to " + sofdUser.getUpn());
+	        		
+	        		changesConfig = true;
+	        		changesEmployee = true;
+	        		employee.setIdentityId(sofdUser.getUpn());
+	        		employeeConfiguration.setIdentityId(sofdUser.getUpn());
+	        	}
+	        }
+
 	        // only set, never update (for now, until we have full control over multiple codes in SOFD with a UI-driven dropdown to select primary)
 	        if (Objects.equals(municipalitySettings.getAuthorisationCodeUpdateType(), UpdateType.UPDATE)) {
 	        	if (StringUtils.hasLength(employeeConfiguration.getAuthorizationCodeConfiguration().getAuthorizationCode())) {
@@ -1521,9 +1546,6 @@ public class NexusService {
 	        }
 
 	        if (changesConfig) {
-	        	// make sure we flip inactive to active in case there are changes
-	        	employeeConfiguration.setActive(true);
-	        	
 	        	UpdateResult res = nexusStub.updateEmployeeConfiguration(employeeConfiguration, municipality);
 	        	switch (res) {
 	        		case FAILED_DELETE_FROM_USER_TABLE:
@@ -1547,9 +1569,6 @@ public class NexusService {
 	        }
 	
 	        if (changesEmployee) {
-	        	// make sure we flip inactive to active in case there are changes
-	        	employee.setActive(true);
-	
 	            boolean success = nexusStub.updateEmployee(employee, municipality);
 	
 	            if (!success) {
@@ -1605,11 +1624,19 @@ public class NexusService {
     
     /// INTERNAL LOGIC ///
 
-    private void updateOrganizations(Municipality municipality, Set<Long> shouldBeInOUIds, User user) {
+    private void updateOrganizations(Municipality municipality, Set<Long> shouldBeInOUIds, User user, boolean updateInactiveEmployee) {
         List<OU> orgs = nexusStub.getUserOrgUnits(user, municipality);
         if (orgs == null) {
             log.warn(municipality.getName() + " : Failed to get assigned organizations for userId " + user.getUserId() + " in Nexus. Will skip sync of the assignments for this userId");
             return;
+        }
+        
+        // in some situations, we do not want to update inactive users in Nexus
+        if (!updateInactiveEmployee) {
+	        EmployeeConfiguration configuration = getEmployeeConfiguration(municipality, user);
+	        if (configuration == null || !configuration.isActive()) {
+	        	return;
+	        }
         }
 
         // now compute changes, if any, compared to Nexus
@@ -2071,6 +2098,10 @@ public class NexusService {
                 to.setPrimaryEmailAddress(municipalitySettings.getNexusDummyEmailAddress());
             }
         }
+        
+        if (municipalitySettings.isSetKmdIdentity()) {
+    		to.setIdentityId(user.getUpn());
+        }
 
         Phone primePhone = person.getPhones().stream().filter(Phone::isPrime).findFirst().orElse(null);
         if (primePhone != null) {
@@ -2089,7 +2120,7 @@ public class NexusService {
             ActiveDirectoryConfiguration config = new ActiveDirectoryConfiguration();
             config.setUpn(user.getUpn());
             to.setActiveDirectoryConfiguration(config);
-        }
+    	}
 
         to.setOrganizationName(primeAffiliationOrgUnit.getName());
         to.setDepartmentName(municipalitySettings.getNexusDefaultDepartment());
@@ -2204,7 +2235,6 @@ public class NexusService {
         return created;
 	}
 
-    // the purpose of this is just to ensure that substitutes actually work, cleanup is KMDs job (and they do that a lot, so let them have it ;))
     @Transactional
 	public void fixOrgRoleAssignmentsOnSubstitutes(Municipality municipality) throws URISyntaxException {
 
@@ -2229,6 +2259,11 @@ public class NexusService {
 				if (!user.isControlOrgRoles()) {
 					continue;
 				}
+				
+				// do not attempt to update inactive employees
+				if (!employee.isActive()) {
+					continue;
+				}
 
 				// we assume that the DB is correct (the job runs every 15 minutes, and updates from RC, so it should be
 	            Set<Long> dbAssignmentNexusIds = user.getAssignments().stream().map(Assignment::getOrgUnitId).collect(Collectors.toSet());
@@ -2238,7 +2273,7 @@ public class NexusService {
 	            shouldBeInOus.addAll(dbAssignmentNexusIds);
 	            shouldBeInOus.addAll(dbOuNexusIds);
 	            
-	            updateOrganizations(municipality, shouldBeInOus, user);
+	            updateOrganizations(municipality, shouldBeInOus, user, false);
 			}
 			catch (NexusTimeoutException ex) {
 				log.warn(municipality.getName() + " : Timeout on updating: " + employee.getInitials(), ex);

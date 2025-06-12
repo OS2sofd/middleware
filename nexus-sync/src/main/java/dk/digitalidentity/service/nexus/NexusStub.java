@@ -693,6 +693,12 @@ public class NexusStub {
 					
 					return UpdateResult.FAILED_DELETE_FROM_USER_TABLE;
 				}
+				else if (body != null && body.contains("ProfessionalPrimaryOrganizationInactive")) {
+					duplicateError = true;
+					log.warn(municipality.getName() + " : failed to update + " + employeeConfiguration.getPrimaryIdentifier() + " because they have an organisation that is inactive");
+					
+					return UpdateResult.FAILED;
+				}
 			}
 
 			if (!duplicateError) {

@@ -22,6 +22,7 @@
 								<form id="settingsForm" method="POST" th:object="${settings}" action="/settings">
 									<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 									<h3>Generelt</h3>
+									
 									<div class="row mt-3">
 										<label for="updateUPN" class="col-lg-2 col-form-label">
 											<span>UPN</span>
@@ -35,6 +36,7 @@
 											</select>
 										</div>
 									</div>
+
 									<div class="row mt-3">
 										<label for="email" class="col-lg-2 col-form-label">
 											<span>Mail til manglende leverandørorganisationer</span>
@@ -61,6 +63,7 @@
 											<input id="inactivationJobEnabled" th:field="*{inactivationJobEnabled}" type="checkbox" class="i-checks" alt="checkbox">
 										</div>
 									</div>
+
 									<div class="row mt-3">
 										<label for="clearCprOnLock" class="col-lg-2 col-form-label">
 											<span>Blank CPR ved spærring i Nexus (OBS! sker kun hvis det er NexusSync der spærrer kontoen)</span>
@@ -69,6 +72,7 @@
 											<input id="clearCprOnLock" th:field="*{clearCprOnLock}" type="checkbox" class="i-checks" alt="checkbox">
 										</div>
 									</div>
+
 									<div class="row mt-3">
 										<label for="disableInitialsUpdate" class="col-lg-2 col-form-label">
 											<span>Undlad opdatering af initialer i Nexus</span>
@@ -77,6 +81,16 @@
 											<input id="disableInitialsUpdate" th:field="*{disableInitialsUpdate}" type="checkbox" class="i-checks" alt="checkbox">
 										</div>
 									</div>
+
+									<div class="row mt-3">
+										<label for="clearCprOnLock" class="col-lg-2 col-form-label">
+											<span>Udfyld KMD Identity ID med UPN</span>
+										</label>
+										<div class="col-lg-10">
+											<input id="setKmdIdentity" th:field="*{setKmdIdentity}" type="checkbox" class="i-checks" alt="checkbox">
+										</div>
+									</div>
+
 									<div class="tabs-container mt-5">
 										<ul class="nav nav-tabs" role="tablist">
 											<li><a class="nav-link active" data-toggle="tab" href="#profile">Profil</a></li>

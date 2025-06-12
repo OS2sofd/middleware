@@ -40,7 +40,7 @@ public class SettingsController {
 						DataFetchType professionalJobFetchFrom, String professionalJobDefault, UpdateType orgsUpdateType,
 						UpdateType authorisationCodeUpdateType, BasedOnRoleOrDefault sendToExchangeType, BasedOnRoleOrDefault useDefaultMedcomSenderType,
 						BasedOnRoleOrDefault trustType, NationalRole nationalRoleDefaultValue, UpdateType fmkRoleUpdateType,
-						DataFetchType fmkRoleFetchFrom, boolean clearCprOnLock, boolean inactivationJobEnabled) {}
+						DataFetchType fmkRoleFetchFrom, boolean clearCprOnLock, boolean inactivationJobEnabled, boolean setKmdIdentity) {}
 
 	@GetMapping("/settings")
 	public String settings(Model model) {
@@ -65,7 +65,7 @@ public class SettingsController {
 				municipalitySettings.getProfessionalJobFetchFrom(), municipalitySettings.getProfessionalJobDefault(), municipalitySettings.getOrgsUpdateType(),
 				municipalitySettings.getAuthorisationCodeUpdateType(), municipalitySettings.getSendToExchangeType(), municipalitySettings.getUseDefaultMedcomSenderType(),
 				municipalitySettings.getTrustType(), municipalitySettings.getNationalRoleDefaultValue(), municipalitySettings.getFmkRoleUpdateType(),
-				municipalitySettings.getFmkRoleFetchFrom(), municipalitySettings.isClearCprOnLock(), municipality.isInactivationJobEnabled()));
+				municipalitySettings.getFmkRoleFetchFrom(), municipalitySettings.isClearCprOnLock(), municipality.isInactivationJobEnabled(), municipalitySettings.isSetKmdIdentity()));
 
 		return "settings/settings";
 	}
@@ -114,6 +114,7 @@ public class SettingsController {
 		municipalitySettings.setFmkRoleUpdateType(settingsForm.fmkRoleUpdateType());
 		municipalitySettings.setFmkRoleFetchFrom(settingsForm.fmkRoleFetchFrom());
 		municipalitySettings.setClearCprOnLock(settingsForm.clearCprOnLock());
+		municipalitySettings.setSetKmdIdentity(settingsForm.setKmdIdentity());
 
 		municipalitySettingsService.save(municipalitySettings);
 		

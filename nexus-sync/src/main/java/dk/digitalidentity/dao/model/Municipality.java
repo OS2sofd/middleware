@@ -62,9 +62,6 @@ public class Municipality {
     @Column
     private boolean disableOrgRoleControl;
     
-    @Column
-    private boolean disableSubstituteReactivate;
-
     @Enumerated(EnumType.STRING)
     @Column
     private InitialsChoice initialsChoice;

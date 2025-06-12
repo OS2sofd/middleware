@@ -10,7 +10,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@JsonIgnoreProperties(ignoreUnknown = true)
+//TODO: on purpose, we want to fail when they add new fields
+@JsonIgnoreProperties(ignoreUnknown = false)
 public class EmployeeConfiguration {
     private int id;
     private int version;
@@ -26,16 +27,15 @@ public class EmployeeConfiguration {
     private ProfessionalJob professionalJob;                                 // Stillingsbetegnelse  -  hvis der findes et match mellem listen i Nexus og stillingsteksten på det primære tilhørsforhold i SOFD, så udfyldes den
     private PrimaryOrganization primaryOrganization;                         // Primær organisation  -  hvis der er match mellem navnet på enheden fra SOFD (primært tilhørsforhold) og en værdi i Nexus listen, så vælges denne
     private Long defaultMedcomSenderOrganizationId;   						 // Default Medcom lokationsnummer  -  hvis der er match mellem navnet på enheden fra SOFD (primært tilhørsforhold) og en værdi i Nexus listen, så vælges denne
-
-    // TODO: bug, sættes ved opdatering, men ikke ved oprettelse!
-    private ActiveDirectoryConfiguration activeDirectoryConfiguration;       // UPN, opdateres med UPN fra den primære AD konto i SOFD (kræver at UPN læses ind i SOFD, hvilket er en ny ting)
-
+    private String identityId;												 // KMD Identity ID         - konfigurabelt om det sættes (if set, it will be set with UPN)
+    
     // sættes kun ved oprettelse
     private KmdVagtplanConfiguration kmdVagtplanConfiguration;      // KMD Vagtplan ansættelsesforhold    -  hardkodet til "0"
     private String cpr;                                             // CPR
     private boolean replyToDefaultMedcomSenderOrganization;         // Anvend Default Medcom lokationsnummer ved besvarelse af Medcom-beskeder  (konfigurabel kommune-global indstilling)
     private ExchangeConfiguration exchangeConfiguration;            // Sæt hak i "Overfør kalenderbegivenheder til Exchange/outlook"  (konfigurabel kommune-global indstilling)
     private NationalRoleConfiguration nationalRoleConfiguration;    // Nationale roller, default blank, kan sættes til "Rettighed til Fælles Stamkort" eller "Rettighed til Fælles Stamkort og Aftaleoversigten" (konfigurabel kommune-global indstilling)
+    private ActiveDirectoryConfiguration activeDirectoryConfiguration;       // UPN, opdateres med UPN fra den primære AD konto i SOFD (kræver at UPN læses ind i SOFD, hvilket er en ny ting)
 
     // sættes ikke, bruges bare til transport frem/tilbage
     private String color;
