@@ -17,6 +17,7 @@
 - **sofd-core-tabulex-integration** - sends data to IST Tabulex from OS2sofd
 - **nexus-sync** - sends data to KMD Nexus
 - **sofd-core-logbuy-integration** - sends data to LogBuy
+- **sofd-core-safety-net** - sends data to SafetyNet
 
 ### functionality
 - **sofd-core-sf1601-integration** - sends digital post through SF1601 on the Serviceplatform
