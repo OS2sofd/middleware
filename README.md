@@ -16,6 +16,7 @@
 - **sofd-core-rollekatalog-integration** - sends data to OS2rollekatalog from OS2sofd
 - **sofd-core-tabulex-integration** - sends data to IST Tabulex from OS2sofd
 - **nexus-sync** - sends data to KMD Nexus
+- **sofd-core-logbuy-integration** - sends data to LogBuy
 
 ### functionality
 - **sofd-core-sf1601-integration** - sends digital post through SF1601 on the Serviceplatform
