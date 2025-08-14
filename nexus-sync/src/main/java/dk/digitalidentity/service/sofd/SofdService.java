@@ -140,15 +140,17 @@ public class SofdService {
 
 		long page = 0;
 		boolean empty = false;
+		String nextOffset = null;
 
 		do {
-			ResponseEntity<PersonList> response = restTemplate.exchange(municipality.getSofdBaseUrl() + query + "&page=" + page, HttpMethod.GET, request, PersonList.class);
+			ResponseEntity<PersonList> response = restTemplate.exchange(municipality.getSofdBaseUrl() + query + "&page=" + page + ((nextOffset != null) ? ("&offset=" + nextOffset) : ""), HttpMethod.GET, request, PersonList.class);
 			if (!response.getStatusCode().equals(HttpStatus.OK) || response.getBody() == null) {
 				log.error("Failed to fetch a list of Persons. " + response.getStatusCodeValue() + ", response=" + response.getBody());
 				return null;
 			}
 
 			result.addAll(response.getBody().getPersons());
+			nextOffset = response.getBody().getNextOffset();
 
 			empty = (response.getBody().getPersons().size() == 0);
 			page += 1;

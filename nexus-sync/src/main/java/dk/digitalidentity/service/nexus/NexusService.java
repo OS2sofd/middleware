@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -757,6 +758,11 @@ public class NexusService {
 		MunicipalitySettings municipalitySettings = municipalitySettingsService.findByCvr(municipality.getCvr());
 		if (municipalitySettings != null && municipalitySettings.isClearCprOnLock()) {
 			employeeConfiguration.setCpr(null);
+			
+			// if CPR is blanked, we need to blank this as well
+			if (employeeConfiguration.getKmdVagtplanConfiguration() != null) {
+				employeeConfiguration.getKmdVagtplanConfiguration().setCprExtra(null);
+			}
 		}
 
         if (nexusStub.updateEmployeeConfiguration(employeeConfiguration, municipality) != UpdateResult.OK) {
@@ -946,6 +952,28 @@ public class NexusService {
 	        userService.saveAll(createdUsers);
         }
     }
+    
+    public Employee getEmployeeByUserId(Municipality municipality, String userId) {
+    	try {
+    		Employee[] employees = nexusStub.getEmployeesByUserId(municipality, userId);
+    		if (employees != null && employees.length > 0) {
+    			for (Employee employee : employees) {
+    				if (!StringUtils.hasText(employee.getPrimaryIdentifier())) {
+    					continue;
+    				}
+
+    				if (Objects.equals(userId.toLowerCase(), employee.getPrimaryIdentifier().toLowerCase())) {
+    					return employee;
+    				}
+    			}
+    		}
+    	}
+    	catch (Exception ex) {
+    		log.warn(municipality.getName() + " : could not extract employees by userId: " + userId + ", errorMessage=" + ex.getMessage());
+    	}
+    	
+    	return null;
+    }
 
     @Transactional
     public void inactivateEmployees(Municipality municipality) throws Exception {
@@ -981,7 +1009,7 @@ public class NexusService {
         	}
         	
         	if (potentialUsers.size() > 1) {
-        		log.warn("More than one user in database with nexusId " + employee.getId());
+        		log.warn(municipality.getName() + " : More than one user in database with nexusId " + employee.getId());
         		continue;
         	}
         	
@@ -1345,7 +1373,7 @@ public class NexusService {
 	        }
 
 	        if (municipalitySettings.isSetKmdIdentity()) {
-	        	if (!Objects.equals(employeeConfiguration.getIdentityId(), sofdUser.getUpn())) {
+	        	if (!Objects.equals(employeeConfiguration.getIdentityId(), sofdUser.getUpn()) || !Objects.equals(employee.getIdentityId(), sofdUser.getUpn())) {
 	        		log.info(municipality.getName() + " : updating KMD Identity for " + sofdUser.getUserId() + " from " + employeeConfiguration.getIdentityId() + " to " + sofdUser.getUpn());
 	        		
 	        		changesConfig = true;
@@ -1695,13 +1723,24 @@ public class NexusService {
 			user.setAssignments(new ArrayList<>());
 		}
 
-        user.getAssignments().clear();
-        if (shouldBeInOUIds.size() > 0) {
-            user.getAssignments().addAll(shouldBeInOUIds.stream()
-        		.map(ouId -> new Assignment(ouId, user))
-        		.collect(Collectors.toList())
-            );
-        }
+		List<Assignment> correctAssignments = shouldBeInOUIds.stream().map(ouId -> new Assignment(ouId, user)).collect(Collectors.toList());
+		
+		// remove
+		for (Iterator<Assignment> it = user.getAssignments().iterator(); it.hasNext(); ) {
+			Assignment currentAssignment = it.next();
+			
+			// if not in the set of correct assignments, remove
+			if (!correctAssignments.stream().anyMatch(ca -> ca.getOrgUnitId() == currentAssignment.getOrgUnitId())) {
+				it.remove();
+			}
+		}
+		
+		// add
+		for (Assignment correctAssignment : correctAssignments) {
+			if (!user.getAssignments().stream().anyMatch(ca -> ca.getOrgUnitId() == correctAssignment.getOrgUnitId())) {
+				user.getAssignments().add(correctAssignment);
+			}
+		}
     }
 
     private void mapAssignmentsToUserId(List<UserRole> userRoles, Map<String, List<AssignmentDTO>> userNameAssignmentMap) {
@@ -2022,11 +2061,21 @@ public class NexusService {
 	            if (cpr != null && employeeConfiguration.getCpr() == null) {
 	            	twoTries = true;
 	            	employeeConfiguration.setCpr(cpr);
+
+	            	// re-enable vagtplan as well
+                    KmdVagtplanConfiguration kmdVagtplanConfiguration = new KmdVagtplanConfiguration();
+                    kmdVagtplanConfiguration.setCprExtra(new long[]{municipalitySettings.getKmdVagtplanConfiguration()});
+                    employeeConfiguration.setKmdVagtplanConfiguration(kmdVagtplanConfiguration);
 	            }
 
 	            boolean result = (nexusStub.updateEmployeeConfiguration(employeeConfiguration, municipality) == UpdateResult.OK);
 	            if (!result && twoTries) {
 	            	employeeConfiguration.setCpr(null);
+
+	    			// if CPR is blanked, we need to blank this as well
+	    			if (employeeConfiguration.getKmdVagtplanConfiguration() != null) {
+	    				employeeConfiguration.getKmdVagtplanConfiguration().setCprExtra(null);
+	    			}
 	            	
 	            	result = (nexusStub.updateEmployeeConfiguration(employeeConfiguration, municipality) == UpdateResult.OK);
 	            }

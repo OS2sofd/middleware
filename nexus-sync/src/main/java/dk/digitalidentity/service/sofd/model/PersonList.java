@@ -11,4 +11,5 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PersonList {
 	private List<Person> persons;
+	private String nextOffset;
 }
