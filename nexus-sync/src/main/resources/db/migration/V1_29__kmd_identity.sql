@@ -1,0 +1,1 @@
+ALTER TABLE municipality_settings ADD set_kmd_identity BOOLEAN NOT NULL DEFAULT 0;

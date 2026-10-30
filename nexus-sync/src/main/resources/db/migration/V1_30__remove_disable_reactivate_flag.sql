@@ -1,0 +1,1 @@
+ALTER TABLE municipality DROP COLUMN disable_substitute_reactivate;

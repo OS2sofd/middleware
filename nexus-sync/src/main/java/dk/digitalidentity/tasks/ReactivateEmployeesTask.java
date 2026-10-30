@@ -26,7 +26,7 @@ public class ReactivateEmployeesTask {
 		log.info("Starting reactivation (and substitute ou fix) task");
 		
 		for (Municipality municipality : municipalityService.getAll()) {
-			if (municipality.isDisabled() || municipality.isDisableSubstituteReactivate()) {
+			if (municipality.isDisabled()) {
 				continue;
 			}
 			

@@ -7,7 +7,8 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@JsonIgnoreProperties(ignoreUnknown = true)
+// TODO: on purpose, we want to fail when they add new fields
+@JsonIgnoreProperties(ignoreUnknown = false)
 public class Employee {
     private long id;
     private boolean active = true;
@@ -23,7 +24,8 @@ public class Employee {
     private String organizationName;    // Organisation     -  navnet på den enhed deres primære tilhørsforhold peger på i SOFD
     private String unitName;            // Enhed            -  stillingsteksten på det primære tilhørsforhold i SOFD
     private ActiveDirectoryConfiguration activeDirectoryConfiguration;  // UPN, opdateres med UPN fra den primære AD konto i SOFD (kræver at UPN læses ind i SOFD, hvilket er en ny ting)
-    
+    private String identityId;										    // KMD Identity ID         - konfigurabelt om det sættes (if set, it will be set with UPN)
+
     // sættes kun ved oprettelse
     private String homeTelephone;       // Telefon (hjem)   -  primært telefonnummer fra SOFD
     private String mobileTelephone;     // Telefon (mobil)  -  primært telefonnummer fra SOFD

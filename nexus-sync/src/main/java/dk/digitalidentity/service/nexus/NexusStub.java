@@ -517,6 +517,26 @@ public class NexusStub {
         
         return null;
 	}
+	
+	public Employee[] getEmployeesByUserId(Municipality municipality, String userId) throws URISyntaxException {
+		WebClient client = webClientBuilderService.getNexusWebClient(municipality);
+        var url = new URI(municipality.getNexusBaseUrl() + "/professionals?query=" + userId);
+        
+        var response = client.get()
+                .uri(url)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+
+        try {
+        	return mapper.readValue(response, Employee[].class);
+        }
+        catch (JsonProcessingException ex) {
+        	log.error("failed to process employees", ex);
+        }
+        
+        return null;
+	}
     
 	public Employee getEmployeeByUuid(Municipality municipality, String kombitUuid, String userId) {
         WebClient client = webClientBuilderService.getNexusWebClient(municipality);
@@ -693,6 +713,12 @@ public class NexusStub {
 					
 					return UpdateResult.FAILED_DELETE_FROM_USER_TABLE;
 				}
+				else if (body != null && body.contains("ProfessionalPrimaryOrganizationInactive")) {
+					duplicateError = true;
+					log.warn(municipality.getName() + " : failed to update + " + employeeConfiguration.getPrimaryIdentifier() + " because they have an organisation that is inactive");
+					
+					return UpdateResult.FAILED;
+				}
 			}
 
 			if (!duplicateError) {
@@ -767,16 +793,24 @@ public class NexusStub {
 			}
 
 			if (!duplicateError) {
-	    		log.error("Failed to update employee with id " + employee.getId() + ", message=" + body, ex);
+	    		log.error(municipality.getName() + " : Failed to update employee with id " + employee.getId() + ", message=" + body, ex);
 	    		
 	        	try {
-	        		log.warn("failed request payload: " + mapper.writeValueAsString(employee));
+	        		log.warn(municipality.getName() + " : failed request payload: " + mapper.writeValueAsString(employee));
 	        	}
 	        	catch (Exception e) {
 	        		;
 	        	}
 			}
     	}
+        catch (WebClientRequestException ex) {
+        	if (ex.contains(ReadTimeoutException.class)) {
+        		log.warn("Timeout on updateEmployee", ex);
+        	}
+        	else {
+        		log.error(municipality.getName() + " : Failed to update employee with id " + employee.getId(), ex);
+        	}
+        }
 
     	return false;
     }

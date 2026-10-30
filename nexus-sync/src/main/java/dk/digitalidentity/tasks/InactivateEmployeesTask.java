@@ -21,8 +21,8 @@ public class InactivateEmployeesTask {
 	@Autowired
 	private MunicipalityService municipalityService;
 
-	// run at 04:00, 08:00, 18:00
-	@Scheduled(cron = "${cron.disableJob:0 0 4,8,18 * * ?}")
+	// run every 2 hours from 4-20 (doubt anyone is planning routes in the middle of the night)
+	@Scheduled(cron = "${cron.disableJob:0 0 4,6,8,10,12,14,16,18,20 * * ?}")
 	public void inactivateEmployees() {
 		log.info("Starting inactivate employees task");
 
