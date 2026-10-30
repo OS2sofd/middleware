@@ -1,0 +1,41 @@
+<div th:fragment="result">
+    <div class="validation-status" id="rcValidationStatus">
+        <div th:each="validation : ${validations}" th:class="'alert ' + 'alert-' + ${validation.status} " role="alert">
+            <div id="rcResult" th:data-result="${validation.status}">
+                <span th:text="${validation.name}"></span>
+                <span th:text="${validation.message}" style="white-space: pre-line"></span>
+            </div>
+        </div>
+    </div>
+    <div class="validation-data">
+        <div class="panel-body">
+            <div class="panel panel-default">
+				<div class="form-horizontal" th:if="${disabled}">
+					<div class="form-group row">
+					    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Spærret</label>
+						<div class="col-sm-8 col-md-8 col-lg-9">
+						    <span class="form-control-static text-danger" style="vertical-align: -webkit-baseline-middle;"><em class="fa fa-exclamation"></em></span>
+						</div>
+					</div>
+				</div>
+
+                <div class="panel-body">
+                    <table id="userRolesTable" cellspacing="0" width="100%" class="listTable table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th class="col-md-6">Navn</th>
+                                <th class="col-md-6">It-System</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="role : ${userRoles}">
+                                <td th:text="${role.name}"></td>
+                                <td th:text="${role.itSystem}"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

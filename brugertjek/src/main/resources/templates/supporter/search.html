@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header}"></head>
+<body class="top-navigation">
+    <div id="wrapper">
+        <div id="page-wrapper" class="gray-bg">
+            <div th:replace="~{fragments/topbar :: topbar(page = 'user.search')}"></div>
+
+            <div class="wrapper wrapper-content">
+                <div class="row">
+                    <div class="col-md-12 col-lg-8 offset-lg-2">
+                        <div class="ibox">
+                            <div class="ibox-title">
+                                <h5><em class="fa fa-search fa-lg"></em> &nbsp; Find bruger</h5>
+                            </div>
+
+                            <div class="ibox-content" style="min-height:200px">
+                                 <form id="searchForm" method="POST" th:action="@{/supporter/search}" th:object="${searchForm}" name="form">
+                                    <div class="form-row pb-3">
+                                        <div class="col-sm-12">
+                                            <input th:field="*{searchText}" type="text" class="custom-input form-control rounded" placeholder="Angiv brugernavn" aria-label="search" autofocus="autofocus" />
+                                            <small th:if="${#fields.hasErrors('searchText')}" th:errors="*{searchText}" class="text-danger mt-1"></small>
+<!--                                             <div class="input-group-append"> -->
+<!--                                                <button class="btn btn-primary" type="button" onclick="javascript:;">Søg</button> -->
+<!--                                             </div> -->
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="col-sm-12 text-center">
+                                            <button class="btn btn-primary btn-block" type="submit" onclick="javascript:;"><em class="fa fa-search mr-2"></em>Søg</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .custom-input {
+    	height: calc(1.5em + .75rem + 5px);
+    }
+    </style>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+    <div th:replace="~{fragments/footer :: scripts}"></div>
+</body>
+</html>

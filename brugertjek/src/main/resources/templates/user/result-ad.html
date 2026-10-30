@@ -1,0 +1,41 @@
+<div th:fragment="result">
+    <div class="validation-status" id="adValidationStatus">
+        <div th:each="validation : ${validations}" th:class="'alert ' + 'alert-' + ${validation.status} " role="alert">
+            <div id="adResult" th:data-result="${validation.status}">
+                <span th:text="${validation.name}"></span>
+                <span th:text="${validation.message}" style="white-space: pre-line"></span>
+            </div>
+        </div>
+    </div>
+    <div class="validation-data">
+        <div class="panel-body">
+            <div class="form-horizontal">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">DistinguishedName</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="${attributes.get('distinguishedName')}"/>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Alle attributter</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <table class="table table-bordered table-striped">
+                          <thead>
+                            <tr>
+                              <th>Attribut</th>
+                              <th>Værdi</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr th:each="attribute : ${attributes}">
+                              <td th:text="${attribute.key}"></td>
+                              <td th:text="${attribute.value}"></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header}"></head>
+<body class="top-navigation">
+    <div id="wrapper">
+        <div id="page-wrapper" class="gray-bg">
+            <div th:replace="~{fragments/topbar :: topbar}"></div>
+
+            <div class="wrapper wrapper-content">
+                <div class="row">
+					<div class="col-md-12 col-lg-8 offset-lg-2">
+                        <div class="middle-box text-center animated fadeInDown" style="margin-top: 40px;">
+                            <h1 style="font-size: 40px;">Noget gik galt <em class="fa fa-frown-o"></em></h1>
+                    
+                            <div>
+                                Der opstod en teknisk fejl. Forsøg igen, og hvis fejlen fortsat opstår, så kontakt din it-afdeling.
+                            </div>
+                            
+                            <h2>Fejlbesked</h2>
+                            <div th:text="${exception}"></div>
+                            
+                            <h3>Tidspunkt</h3>
+							<div th:text="${timestamp}"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: scripts}"></div>
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

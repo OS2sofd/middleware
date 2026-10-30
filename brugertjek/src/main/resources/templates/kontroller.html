@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header}"></head>
+<body class="top-navigation">
+    <div id="wrapper">
+        <div id="page-wrapper" class="gray-bg">
+            <div th:replace="~{fragments/topbar :: topbar}"></div>
+
+            <div class="wrapper wrapper-content">
+                <div class="row">
+					<div class="col-md-12 col-lg-10 offset-lg-1">
+                        <div class="ibox">
+                            <div class="ibox-content" >
+                                <div class="full-width">
+                                    <h1>Brugertjek kontroller</h1>
+                                    <p>
+										Antallet af kontroller der udføres, afhænger af hvilke systemer der er slået til. Nedenfor er listet alle de systemer der er mulige at slå til, samt hvilke kontroller der udføres på disse.
+									</p>
+
+									<h2>Active Directory</h2>
+									<p>Nedenstående kontroller udføres på brugerkontoen hvis der er opsat en integration til Active Directory. Selve integrationen forudsætter at man har installeret <a href="https://www.digital-identity.dk/downloads.html">AD Connect</a></p>
+									<ul>
+										<li>At kontoen findes i Active Directory</li>
+										<li>At kontoen er aktiv i Active Directory (ikke disabled)</li>
+										<li>At kontoen ikke er udløbet</li>
+										<li>At kontoen ikke udløber indenfor de næste 7 dage</li>
+										<li>At kontoen ikke er låst (forkert kodeord for mange gange</li>
+										<li>Endeligt vises alle attributter og gruppemedlemsskaber i tabelform til inspektion</li>
+									</ul>
+
+									<h2>EntraID</h2>
+									<p>Nedenstående kontroller udføres på brugerkontoen hvis der er opsat integration til EntraID. Selve integrationen forudsætter at man også har kontrollen mod Active Directory slået til (da UPN hentes fra AD og bruges til opslag mod EntraID). Der skal oprettes en såkaldt App Registration der har læseadgang til jeres Tenant for at kunne udføre kontrollerne.</p>
+									<ul>
+										<li>At kontoen findes i EntraID</li>
+										<li>At kontoen er aktiv i EntraID</li>
+										<li>At kontoen er tildelt mindst én licens</li>
+										<li>Endeligt vises alle de licenser som brugeren er tildelt i tabelform til inspektion</li>
+									</ul>
+
+									<h2>FK Organisation</h2>
+									<p>Nedenstående kontroller udføres på brugerkontoen hvis der er opsat integration til FK Organisation. Selve integrationen forudsætter at der eksisterer en godkendt serviceaftale på Serviceplatformen, til at kalde FK Organisation.</p>
+									<ul>
+										<li>At kontoen findes i FK Organisation</li>
+										<li>At kontoen er aktiv i FK Organisation</li>
+										<li>At kontoen har mindst én gyldig relation til en enhed i FK Organisation</li>
+										<li>Hvis man også har kontroller mod OS2sofd slået til, så valideres det at brugerens enheds-relationer i FK Organisation matcher dem fra OS2sofd</li>
+										<li>Endeligt vises alle stamdata fra FK Organisation i tabelform til inspektion</li>
+									</ul>
+
+									<h2>KMD Nexus</h2>
+									<p>Nedenstående kontroller udføres på brugerkontoen hvis der er opsat integration til KMD Nexus. Selve integrationen forudsætter at man har fået etableret en API Adgang til KMD Nexus, der skal bestilles hos KMD.</p>
+									<ul>
+										<li>At kontoen findes i KMD Nexus</li>
+										<li>At kontoen er aktiv i KMD Nexus</li>
+										<li>Hvis man kører med NexusSync, hvorvidt kontoen er synkorniseret korrekt af NexusSync</li>
+										<li>Endeligt vises enkelte udvalgte stamdata fra KMD Nexus i tabelform til inspektion</li>
+									</ul>
+
+									<h2>OS2sofd</h2>
+									<p>Nedenstående kontroller udføres på brugerkontoen hvis der er opsat integration til OS2sofd. Digital Identity kan opsætte integrationen på instruks. Bemærk at der er lidt overlap med de kontroller der udføres mod Active Directory, da OS2sofd indeholder stamdata fra Active Directory.</p>
+									<ul>
+										<li>At kontoen findes i OS2sofd</li>
+										<li>At kontoen er aktiv jf OS2sofd</li>
+										<li>At kontoens kodeord ikke er udløbet</li>
+										<li>At kontoens kodeord ikke udløber indenfor de næste 7 dage</li>
+										<li>At kontoen ikke er udløbet</li>
+										<li>At kontoen ikke udløber indenfor de næste 7 dage</li>
+										<li>Endeligt præsenteres udvalgte stamdata fra OS2sofd i tabelform til inspektion</li>
+									</ul>
+
+									<h2>OS2faktor</h2>
+									<p>Nedenstående kontroller udføres på brugerkontoen hvis der er opsat integration til OS2faktor. Digital Identity kan opsætte integrationen på instruks.</p>
+									<ul>
+										<li>At kontoen findes i OS2faktor</li>
+										<li>At kontoen er aktiv i OS2faktor</li>
+										<li>At kontoen, hvis den er oprettet i MitID Erhverv, ikke er spærret i MitID Erhverv</li>
+										<li>At kontoens kodeord overholder de nuværende kodeordsregler</li>
+										<li>Endeligt præsenteres udvalgte stamdata fra OS2faktor i tabelform til inspektion</li>
+									</ul>
+
+									<h2>OS2rollekatalog</h2>
+									<p>Nedenstående kontroller udføres på brugerkontoen hvis der er opsat integration til OS2rollekatalog. Digital Identity kan opsætte integrationen på instruks.</p>
+									<ul>
+										<li>At kontoen findes i OS2rollekatalog</li>
+										<li>At kontoen er aktiv i OS2rollekatalog</li>
+										<li>At kontoen er tildelt mindst én rolle i OS2rollekatalog</li>
+										<li>Endeligt præsenteres en liste over alle de roller som kontoen er tildelt</li>
+									</ul>
+
+									<h1>Sådan får du Brugertjek</h1>
+									<p>
+										Brugertjek tilbydes af Digital Identity. Tag fat i <a href="mailto:kontakt@digital-identity.dk">kontakt@digital-identity.dk</a> for flere oplysninger.
+									</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: scripts}"></div>
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

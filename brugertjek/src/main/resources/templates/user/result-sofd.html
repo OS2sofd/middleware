@@ -1,0 +1,122 @@
+<div th:fragment="result">
+    <div class="validation-status" id="sofdValidationStatus">
+        <div th:each="validation : ${validations}" th:class="'alert ' + 'alert-' + ${validation.status} " role="alert">
+            <div id="sofdResult" th:data-result="${validation.status}">
+                <span th:text="${validation.name}"></span>
+                <span th:text="${validation.message}" style="white-space: pre-line"></span>
+            </div>
+        </div>
+    </div>
+    <div class="validation-data">
+        <div class="panel-body">
+            <div class="form-horizontal" th:object="${sofdPerson}">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">OS2sofd UUID</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="*{uuid}"/>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">KOMBIT UUID</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="*{kombitUuid}"/>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Kildesystem</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="*{master}"/>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Oprettet</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="*{created}"/>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Sidst ændret</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="*{lastChanged}"/>
+                    </div>
+                </div>
+                <div th:if="*{deleted}" class="form-group row has-error">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Slettet</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <span class="form-control-static text-danger" style="vertical-align: -webkit-baseline-middle;"><em class="fa fa-exclamation"></em></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Fornavn</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="*{firstname}"/>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Efternavn</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="*{surname}"/>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Kaldenavn</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="*{chosenName}"/>
+                    </div>
+                </div>
+                <div class="form-group row" th:if="${showCPR}">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Personnummer</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="*{cpr}"/>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Kontoudløb</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="*{accountExpire}"/>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Kodeordsudløb</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="*{passwordExpire}"/>
+                    </div>
+                </div>
+				<div class="form-group row">
+				    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Tilhørsforhold</label>
+				    <div class="col-sm-8 col-md-8 col-lg-9">
+				        <table class="table table-bordered table-striped">
+				          <thead>
+				            <tr>
+				              <th>Titel</th>
+				              <th>Enheds UUID</th>
+				              <th>Start dato</th>
+				              <th>Slut dato</th>
+				            </tr>
+				          </thead>
+				          <tbody>
+				            <tr th:each="affiliation : *{affiliations}">
+				              <td>
+                                <th:block th:text="${affiliation.positionName}"></th:block>
+								<label th:if="${affiliation.prime}" class="label label-primary">Primær</label>
+							  </td>
+				              <td th:if="${affiliation.orgUnitName != null}" th:text="${affiliation.orgUnitName}"></td>
+							  <td th:if="${affiliation.orgUnitName == null}" th:text="${affiliation.orgUnitUuid}"></td>
+				              <td th:text="${affiliation.startDate}"></td>
+				              <td th:text="${affiliation.stopDate}"></td>
+				            </tr>
+				          </tbody>
+				        </table>
+				    </div>
+				</div>
+
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Telefonnumre</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <div class="form-control-static" th:each="number : ${sofdPerson.phones}" th:text="${number.phoneNumber}"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

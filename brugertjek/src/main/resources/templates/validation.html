@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header(checkbox = true, datatables = true)}"></head>
+<body class="top-navigation">
+    <div id="wrapper">
+        <div id="page-wrapper" class="gray-bg">
+            <div th:replace="~{fragments/topbar :: topbar(page = 'result')}"></div>
+
+            <div class="wrapper wrapper-content">
+				
+				<a th:href="@{/supporter}" class="btn btn-primary pull-left" style="position: absolute;" sec:authorize="hasRole('ROLE_ADMINISTRATOR') or hasRole('ROLE_SUPPORTER')">
+					<em class="fa fa-arrow-left mr-2"></em>
+					Søg igen
+				</a>
+				
+                <div class="row">
+                    <div class="col-md-12 col-lg-8 offset-lg-2">
+                        <div id="container_results">
+                            <div class="ibox">
+                                <div class="ibox-title">
+                                    <h5><em class="fa fa-search fa-lg"></em> &nbsp; RESULTAT</h5>
+                                </div>
+                        
+                                <div id="validation-results" class="ibox-content" style="min-height:100px">
+                        
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-12 col-lg-8 offset-lg-2">
+                        <div class="ibox">
+                            <div class="ibox-title">
+                                <h5><em class="fa fa-table fa-lg"></em> &nbsp; DATA</h5>
+                            </div>
+                            <div class="ibox-content" style="min-height:200px">
+                                <div class="tabs-container">
+                                    <ul id="tab-list" class="nav nav-tabs" role="tablist">
+<!--                                         generated in javascript -->
+                                        <li th:if="${sofdEnabled}">
+                                        	<a class="nav-link active" id="skeleton-tab-sofd" role="tab" style="color: lightgrey;">
+                                        		<i class="fa fa-spinner fa-spin"></i> OS2sofd
+                                        	</a>
+                                        </li>
+                                        <li th:if="${rcEnabled}">
+                                        	<a class="nav-link" id="skeleton-tab-rc" role="tab" style="color: lightgrey;">
+                                        		<i class="fa fa-spinner fa-spin"></i> OS2rollekatalog
+                                        	</a>
+                                        </li>
+                                        <li>
+                                        	<a class="nav-link" id="skeleton-tab-os2sync" role="tab" style="color: lightgrey;">
+                                        		<i class="fa fa-spinner fa-spin"></i> FK Organisation
+                                        	</a>
+                                        </li>
+                                        <li th:if="${adEnabled}">
+                                        	<a class="nav-link" id="skeleton-tab-ad" role="tab" style="color: lightgrey;">
+                                        		<i class="fa fa-spinner fa-spin"></i> Active Directory
+                                        	</a>
+                                        </li>
+                                        <li th:if="${nexusEnabled}">
+                                        	<a class="nav-link" id="skeleton-tab-nexus" role="tab" style="color: lightgrey;">
+												<i class="fa fa-spinner fa-spin"></i> KMD Nexus
+                                        	</a>
+                                        </li>
+                                        <li th:if="${os2faktorEnabled}">
+                                        	<a class="nav-link" id="skeleton-tab-os2faktor" role="tab" style="color: lightgrey;">
+                                        		<i class="fa fa-spinner fa-spin"></i> OS2faktor
+                                        	</a>
+                                        </li>
+                                        <li th:if="${entraEnabled}">
+                                        	<a class="nav-link" id="skeleton-tab-entra" role="tab" style="color: lightgrey;">
+                                        		<i class="fa fa-spinner fa-spin"></i> EntraID
+                                        	</a>
+                                        </li>
+                                    </ul>
+                                    <div id="tab-content" class="tab-content">
+<!--                                         loaded in javascript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: scripts(checkbox = true, datatables = true)}"></div>
+    <div th:replace="~{fragments/datatables :: datatables}"></div>
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <style>
+        .alert-success span:last-child {
+            float: right;
+        }
+    
+        .alert-success span:first-child {
+            float: left;
+        }
+    
+        .alert-success > div:after {
+            clear: both;
+            content: '';
+            display: table;
+        }
+		
+	    .alert-warning span:last-child {
+	        float: right;
+	    }
+
+	    .alert-warning span:first-child {
+	        float: left;
+	    }
+
+	    .alert-warning > div:after {
+	        clear: both;
+	        content: '';
+	        display: table;
+	    }
+
+		.alert-danger span:last-child {
+		    float: right;
+		}
+
+		.alert-danger span:first-child {
+		    float: left;
+		}
+
+		.alert-danger > div:after {
+		    clear: both;
+		    content: '';
+		    display: table;
+		}
+		
+        .skeleton-text {
+            display: inline-block;
+            min-width: 120px;
+            width: 100%;
+            height: 0.7rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.25rem;
+            border: 10px solid lightgray;
+            background-color: lightgray;
+            color: lightgray;
+        }
+    </style>
+
+    <script th:inline="javascript">
+    
+    /*<![CDATA[*/
+    /*[+
+    	var adEnabled = [[${adEnabled}]];
+    	var sofdEnabled = [[${sofdEnabled}]];
+    	var nexusEnabled = [[${nexusEnabled}]];
+    	var rcEnabled = [[${rcEnabled}]];
+    	var os2faktorEnabled = [[${os2faktorEnabled}]];
+    	var entraEnabled = [[${entraEnabled}]];
+    	
+    	var findUserIdFirst = [[${findUserIdFirst}]];
+	+]*/
+
+        $(document).ready(function () {
+        	
+        	if (sofdEnabled) {
+	            validateSOFD().then(() => {
+	            	validateOS2Sync().then(() => {
+                        const status = $('#os2syncResult').data('result');
+                        mapStatusToIcon(status, 'os2sync');
+                    });
+
+	            	// when performing a user-self-lookup, we need to get the userId before we do anything else 
+	            	if (findUserIdFirst) {
+	            		validateTheRest();
+	            	}
+					
+                    const status = $('#sofdResult').data('result');
+                    mapStatusToIcon(status, 'sofd');
+                })
+            }
+
+        	if (!findUserIdFirst) {
+				validateTheRest();
+        	}
+        });
+    
+    	function validateTheRest() {
+        	if (rcEnabled) {
+				validateRC().then(() => {
+                    const status = $('#rcResult').data('result');
+                    mapStatusToIcon(status, 'rc');
+                });
+        	}
+        	
+        	if (adEnabled) {
+	            validateAD().then(() => {
+                    const status = $('#adResult').data('result');
+                    mapStatusToIcon(status, 'ad');
+					
+					if (entraEnabled) {
+					    validateEntra().then(() => {
+					        const status = $('#entraResult').data('result');
+					        mapStatusToIcon(status, 'entra');
+					    })
+					}
+                });
+        	}
+        	
+        	if (nexusEnabled) {
+        		validateNexus().then(() => {
+                    const status = $('#nexusResult').data('result');
+                    mapStatusToIcon(status, 'nexus');
+                });
+        	}
+        	
+        	if (os2faktorEnabled) {
+        		validateOS2faktor().then(() => {
+                    const status = $('#os2faktorResult').data('result');
+                    mapStatusToIcon(status, 'os2faktor');
+                });
+        	}
+    	}
+
+        function createTab(tabName, title, active, callback) {
+            $('#tab-list').append($('<li><a class="nav-link' + (active ? ' active': '') +'" id="nav-' + tabName + '-tab" data-toggle="tab" data-target="#nav-' + tabName + '" role="tab" aria-controls="nav-' + tabName + '" aria-selected="true" style="display: none;">' + title + '<em class="loading"><i class="fa fa-circle-o-notch fa-spin fa-fw ml-1"></i><span class="sr-only">Loading...</span></em><em id="nav-' + tabName + '-tab-status" class="fa fa-fw fa-check-circle" style="color: black; display: none; margin-left: 5px;"></em></a></li>'));
+            $('#tab-content').append($('<div class="tab-pane fade" id="nav-' + tabName + '" role="tabpanel" aria-labelledby="nav-' + tabName + '-tab"></div>'));
+
+			if (callback) {
+                callback();
+            }
+        }
+
+        // TODO: this should resolve true or false so that we know if we should try to call os2sync or not
+        function validateSOFD() {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // Trigger SOFD validation
+                    createTab('sofd', "OS2sofd", true, () => {
+                        $('#validation-results').getThen('/validate/sofd').then((htmlContent) => {
+                            // Remove skeleton tab
+                            $('#skeleton-tab-sofd').replaceWith($('#nav-sofd-tab'));
+                            $('#nav-sofd-tab').show();
+
+                            $('#validation-results').append($(htmlContent).find('.validation-status'));
+                            $('#nav-sofd').html($(htmlContent).find('.validation-data'));
+
+                            // Remove loading spinner
+                            $('#nav-sofd-tab > em.loading').remove();
+
+                            // If the loaded tab is the current tab then reload it
+                            if ($("#tab-list a.active").attr('id') == 'nav-sofd-tab') {
+                                $('#nav-sofd-tab').tab('show');
+                                $('#nav-sofd').addClass("active show");
+                            }
+                            resolve()
+                        });
+                    });
+                }, 1);
+            });
+        }
+
+        function validateRC() {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // Trigger RoleCatalog validation
+                    createTab('rc', "OS2rollekatalog", false, () => {
+
+                        $('#validation-results').getThen('/validate/rc').then((htmlContent) => {
+                            // Remove skeleton tab
+                            $('#skeleton-tab-rc').replaceWith($('#nav-rc-tab'));
+                            $('#nav-rc-tab').show();
+
+                            $('#validation-results').append($(htmlContent).find('.validation-status'));
+                            $('#nav-rc').html($(htmlContent).find('.validation-data'));
+
+                            // Remove loading spinner
+                            $('#nav-rc-tab > em.loading').remove();
+                            
+                            //Reload datatables
+                            loadDataTables();
+
+                            // If the loaded tab is the current tab then reload it
+                            if ($("#tab-list a.active").attr('id') == 'nav-rc-tab') {
+                                $('#nav-rc-tab').tab('show');
+                                $('#nav-rc').addClass("active show");
+                            }
+                            resolve()
+                        });
+                    });
+                }, 1);
+            });
+        }
+        
+        function validateOS2Sync() {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // Trigger OS2Sync validation
+                    createTab('os2sync', "FK Organisation", false, () => {
+
+                        $('#validation-results').getThen('/validate/os2sync').then((htmlContent) => {
+                            // Remove skeleton tab
+                            $('#skeleton-tab-os2sync').replaceWith($('#nav-os2sync-tab'));
+                            $('#nav-os2sync-tab').show();
+
+                            $('#validation-results').append($(htmlContent).find('.validation-status'));
+                            $('#nav-os2sync').html($(htmlContent).find('.validation-data'));
+
+                            // Remove loading spinner
+                            $('#nav-os2sync-tab > em.loading').remove();
+
+                            // If the loaded tab is the current tab then reload it
+                            if ($("#tab-list a.active").attr('id') == 'nav-os2sync-tab') {
+                                $('#nav-os2sync-tab').tab('show');
+                                $('#nav-os2sync').addClass("active show");
+                            }
+                            resolve()
+                        });
+                    });
+                }, 1);
+            });
+        }
+        
+        function validateAD() {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // Trigger AD validation
+                    createTab('ad', "Active Directory", false, () => {
+
+                        $('#validation-results').getThen('/validate/ad').then((htmlContent) => {
+                            // Remove skeleton tab
+                            $('#skeleton-tab-ad').replaceWith($('#nav-ad-tab'));
+                            $('#nav-ad-tab').show();
+
+                            $('#validation-results').append($(htmlContent).find('.validation-status'));
+                            $('#nav-ad').html($(htmlContent).find('.validation-data'));
+
+                            // Remove loading spinner
+                            $('#nav-ad-tab > em.loading').remove();
+
+                            // If the loaded tab is the current tab then reload it
+                            if ($("#tab-list a.active").attr('id') == 'nav-ad-tab') {
+                                $('#nav-ad-tab').tab('show');
+                                $('#nav-ad').addClass("active show");
+                            }
+                            resolve()
+                        });
+                    });
+                }, 1);
+            });
+        }
+		
+		function validateOS2faktor() {
+		    return new Promise((resolve) => {
+		        setTimeout(() => {
+		            // Trigger OS2faktor validation
+		            createTab('os2faktor', "OS2faktor", false, () => {
+
+		                $('#validation-results').getThen('/validate/os2faktor').then((htmlContent) => {
+		                    // Remove skeleton tab
+		                    $('#skeleton-tab-os2faktor').replaceWith($('#nav-os2faktor-tab'));
+		                    $('#nav-os2faktor-tab').show();
+
+		                    $('#validation-results').append($(htmlContent).find('.validation-status'));
+		                    $('#nav-os2faktor').html($(htmlContent).find('.validation-data'));
+
+		                    // Remove loading spinner
+		                    $('#nav-os2faktor-tab > em.loading').remove();
+
+		                    // If the loaded tab is the current tab then reload it
+		                    if ($("#tab-list a.active").attr('id') == 'nav-os2faktor-tab') {
+		                        $('#nav-os2faktor-tab').tab('show');
+		                        $('#nav-os2faktor').addClass("active show");
+		                    }
+		                    resolve()
+		                });
+		            });
+		        }, 1);
+		    });
+		}
+		
+		function validateNexus() {
+		    return new Promise((resolve) => {
+		        setTimeout(() => {
+		            // Trigger Nexus validation
+		            createTab('nexus', "KMD Nexus", false, () => {
+
+		                $('#validation-results').getThen('/validate/nexus').then((htmlContent) => {
+		                    // Remove skeleton tab
+		                    $('#skeleton-tab-nexus').replaceWith($('#nav-nexus-tab'));
+		                    $('#nav-nexus-tab').show();
+
+		                    $('#validation-results').append($(htmlContent).find('.validation-status'));
+		                    $('#nav-nexus').html($(htmlContent).find('.validation-data'));
+
+		                    // Remove loading spinner
+		                    $('#nav-nexus-tab > em.loading').remove();
+		                    // If the loaded tab is the current tab then reload it
+		                    if ($("#tab-list a.active").attr('id') == 'nav-nexus-tab') {
+		                        $('#nav-nexus-tab').tab('show');
+		                        $('#nav-nexus').addClass("active show");
+		                    }
+		                    resolve()
+		                });
+		            });
+		        }, 1);
+		    });
+		}
+
+        function validateEntra() {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    createTab('entra', 'EntraID', false, () => {
+		                $('#validation-results').getThen('/validate/entra').then((htmlContent) => {
+		                    // Remove skeleton tab
+		                    $('#skeleton-tab-entra').replaceWith($('#nav-entra-tab'));
+		                    $('#nav-entra-tab').show();
+
+		                    $('#validation-results').append($(htmlContent).find('.validation-status'));
+		                    $('#nav-entra').html($(htmlContent).find('.validation-data'));
+
+		                    // Remove loading spinner
+		                    $('#nav-entra-tab > em.loading').remove();
+
+		                    // If the loaded tab is the current tab then reload it
+		                    if ($("#tab-list a.active").attr('id') == 'nav-entra-tab') {
+		                        $('#nav-entra-tab').tab('show');
+		                        $('#nav-entra').addClass("active show");
+		                    }
+                            resolve();
+		                });
+                    });
+                }, 1);
+            });
+        }
+
+        function mapStatusToIcon(status, origin) {
+            if (status === "danger") {
+                $('#nav-' + origin + '-tab-status').attr('class', "fa fa-exclamation-circle")
+                $('#nav-' + origin + '-tab-status').css("color", "red");
+                $('#nav-' + origin + '-tab-status').css("display", "inline");
+            }
+            if (status === "success") {
+                $('#' + origin + 'ValidationStatus').hide();
+                $('#nav-' + origin + '-tab-status').css("color", "green");
+                $('#nav-' + origin + '-tab-status').css("display", "inline");
+            }
+            if (status === "warning") {
+                $('#nav-' + origin + '-tab-status').attr('class', "fa fa-exclamation-circle")
+                $('#nav-' + origin + '-tab-status').css("color", "orange");
+                $('#nav-' + origin + '-tab-status').css("display", "inline");
+            }
+        }
+
+        /*]]>*/
+    </script>
+
+</body>
+</html>

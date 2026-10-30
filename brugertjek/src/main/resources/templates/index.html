@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header}"></head>
+<body class="top-navigation">
+    <div id="wrapper">
+        <div id="page-wrapper" class="gray-bg">
+            <div th:replace="~{fragments/topbar :: topbar}"></div>
+
+            <div class="wrapper wrapper-content">
+                <div class="row">
+					<div class="col-md-12 col-lg-10 offset-lg-1">
+                        <div class="ibox">
+                            <div class="ibox-content" >
+                                <div class="full-width">
+                                    <th:block sec:authorize="!isAuthenticated()">
+                                        <form th:action="@{/dashboard}" class="text-center">
+                                            <h1>Brugertjek</h1>
+                                            <p>
+												Brugertjek kan analyse brugerdata for potentielle fejlkilder - læs mere om hvilke kontroller der udføres <a th:href="@{/kontroller}">her<a>.
+											</p>
+											
+											<br/>
+                                            <button class="btn btn-primary block offset-2 col-sm-8 m-b">Login</button>
+                                        </form>
+                                    </th:block>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: scripts}"></div>
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

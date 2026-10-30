@@ -1,0 +1,39 @@
+<div th:fragment="result">
+    <div class="validation-status" id="entraValidationStatus">
+        <div th:each="validation : ${validations}" th:class="'alert ' + 'alert-' + ${validation.status} " role="alert">
+            <div id="entraResult" th:data-result="${validation.status}">
+                <span th:text="${validation.name}"></span>
+                <span th:text="${validation.message}" style="white-space: pre-line"></span>
+            </div>
+        </div>
+    </div>
+    <div class="validation-data">
+        <div class="panel-body">
+            <div th:if="${lookup != null}" class="form-horizontal">
+                <div class="form-group row">
+				    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Aktiv i Entra</label>
+					<div class="col-sm-8 col-md-8 col-lg-9">
+                        <span th:if="${lookup.active}" class="form-control-static" style="vertical-align: -webkit-baseline-middle;"><em class="fa fa-check"></em></span>
+					</div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Alle licenser</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <table class="table table-bordered table-striped">
+                          <thead>
+                            <tr>
+                              <th>Licens</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr th:each="license : ${lookup.licenses}">
+                              <td th:text="${license}"></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

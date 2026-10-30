@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <div th:fragment="topbar" class="row border-bottom white-bg">
+        <nav class="navbar navbar-expand-lg navbar-static-top" role="navigation">
+            <a th:href="@{/}" class="navbar-brand" style="background: white; color: black; align-self: center;"><strong>Brugertjek</strong></a>
+
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-label="Toggle navigation">
+                <i class="fa fa-reorder"></i>
+            </button>
+
+            <div class="navbar-collapse collapse" id="navbar">
+                <ul class="nav navbar-nav mr-auto">
+                    <li sec:authorize="hasRole('ROLE_USER') or hasRole('ROLE_SUPPORTER')" th:class="${page != null and #strings.startsWith(page, 'admin.') == false} ? 'active' : ''">
+                        <a role="button" th:href="@{/validate}">Brugerkontrol</a>
+                    </li>
+
+                    <li sec:authorize="hasRole('ROLE_ADMINISTRATOR')" th:class="${page != null and #strings.startsWith(page, 'admin.')} ? 'active' : ''">
+                        <a role="button" th:href="@{/admin}">Konfiguration</a>
+                    </li>
+                </ul>
+                
+                <ul class="nav navbar-top-links navbar-right">
+                    <li sec:authorize="isAuthenticated()">
+                        <form th:action="@{/logout}" id="logout_form" method="post"></form>
+                        <a href="#" onclick="$('#logout_form').submit();"><em class="fa fa-sign-out"></em><span>Log ud</span></a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </div>
+</body>
+</html>

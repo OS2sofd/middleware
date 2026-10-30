@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head th:replace="~{fragments/header :: header (checkbox = true)}"></head>
+<body class="top-navigation">
+    <div id="wrapper">
+        <div id="page-wrapper" class="gray-bg">
+            <div th:replace="~{fragments/topbar :: topbar(page = 'admin.search')}"></div>
+
+            <div class="wrapper wrapper-content">
+                <div class="row">
+                    <div class="col-md-12 col-lg-8 offset-lg-2">
+                        <div class="ibox">
+                            <div class="ibox-title">
+                                <h5><em class="fa fa-cogs fa-lg"></em> &nbsp; Indstillinger</h5>
+                            </div>
+
+                            <div class="ibox-content" style="min-height:200px">
+                                 <form id="settingsForm" method="POST" th:action="@{/admin}" th:object="${municipality}" name="form">
+									<div class="form-group row">
+										<label class="col-sm-4 col-form-label">
+											Tillad bruger-logon
+										</label>
+										<div class="col-sm-8">
+											<label><input id="allowUserLogin" th:field="*{allowUserLogin}" type="checkbox" class="i-checks" checked="checked"></label>
+										</div>
+									</div>
+
+                                    <div class="form-group row">
+                                        <div class="col-sm-12 text-center">
+                                            <button class="btn btn-primary btn-block" type="submit" onclick="javascript:;">Gem</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+    <div th:replace="~{fragments/footer :: scripts (checkbox = true)}"></div>
+</body>
+</html>

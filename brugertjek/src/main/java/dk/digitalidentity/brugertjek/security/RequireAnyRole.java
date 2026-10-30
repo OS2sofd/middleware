@@ -1,0 +1,11 @@
+package dk.digitalidentity.brugertjek.security;
+import org.springframework.security.access.prepost.PreAuthorize;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
+@Retention(RetentionPolicy.RUNTIME)
+@PreAuthorize("hasAnyRole('ROLE_ADMINISTRATOR', 'ROLE_SUPPORTER', 'ROLE_USER')")
+public @interface RequireAnyRole {
+
+}

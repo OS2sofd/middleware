@@ -1,0 +1,74 @@
+<div th:fragment="result">
+    <div class="validation-status" id="os2faktorValidationStatus">
+        <div th:each="validation : ${validations}" th:class="'alert ' + 'alert-' + ${validation.status} " role="alert">
+            <div id="os2faktorResult" th:data-result="${validation.status}">
+                <span th:text="${validation.name}"></span>
+                <span th:text="${validation.message}" style="white-space: pre-line"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="validation-data">
+        <div class="panel-body">
+            <div th:if="${lookup != null}" class="form-horizontal" th:object="${lookup}">
+				<div class="form-group row">
+				    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Erhvervsidentitet</label>
+					<div class="col-sm-8 col-md-8 col-lg-9">
+				        <span th:if="*{os2faktorActiveCorporateId}" class="form-control-static" style="vertical-align: -webkit-baseline-middle;"><em class="fa fa-check"></em></span>
+				    </div>
+				</div>
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Låst i OS2faktor</label>
+					<div class="col-sm-8 col-md-8 col-lg-9">
+                        <span th:if="*{os2faktorLocked}" class="form-control-static text-danger" style="vertical-align: -webkit-baseline-middle;"><em class="fa fa-exclamation"></em></span>
+                    </div>
+                </div>
+				<div class="form-group row">
+				    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">Dårligt kodeord i OS2faktor</label>
+					<div class="col-sm-8 col-md-8 col-lg-9">
+				        <span th:if="*{os2faktorBadPassword}" class="form-control-static text-danger" style="vertical-align: -webkit-baseline-middle;"><em class="fa fa-exclamation"></em></span>
+				    </div>
+				</div>
+
+				<th:block th:if="*{mitIdErhvervStatus != null}">
+					
+                <div class="form-group row">
+                    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">MitID Erhverv Status</label>
+                    <div class="col-sm-8 col-md-8 col-lg-9">
+                        <input class="form-control" type="text" readonly="readonly" th:value="*{mitIdErhvervStatus}"/>
+                    </div>
+                </div>
+
+				<div class="form-group row">
+				    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">MitID Erhverv Uuid</label>
+				    <div class="col-sm-8 col-md-8 col-lg-9">
+				        <input class="form-control" type="text" readonly="readonly" th:value="*{mitIdErhvervUuid}"/>
+				    </div>
+				</div>
+
+				<div class="form-group row">
+				    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">MitID Erhverv RID</label>
+				    <div class="col-sm-8 col-md-8 col-lg-9">
+				        <input class="form-control" type="text" readonly="readonly" th:value="*{mitIdErhvervRid}"/>
+				    </div>
+				</div>
+
+				<div class="form-group row">
+				    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">MitID Erhverv Kvalificeret Signatur</label>
+					<div class="col-sm-8 col-md-8 col-lg-9">
+					    <span th:if="*{mitIdErhvervQualifiedSignature}" class="form-control-static" style="vertical-align: -webkit-baseline-middle;"><em class="fa fa-check"></em></span>
+					</div>
+				</div>
+
+				<div class="form-group row">
+				    <label class="col-sm-4 col-md-4 col-lg-3 col-form-label">MitID Erhverv Privat MitID</label>
+					<div class="col-sm-8 col-md-8 col-lg-9">
+					    <span th:if="*{mitIdErhvervPrivateMitID}" class="form-control-static" style="vertical-align: -webkit-baseline-middle;"><em class="fa fa-check"></em></span>
+					</div>
+				</div>
+
+				</th:block>
+            </div>
+        </div>
+    </div>
+</div>
